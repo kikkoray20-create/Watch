@@ -1,0 +1,6 @@
+{
+  "name": "Premium Watch Store",
+  "description": "A luxury watch boutique and comprehensive e-commerce educational dashboard that teaches Shopify architecture, storefront API, payment gateways, and inventory management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
