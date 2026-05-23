@@ -1,19 +1,25 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
 
 // Resolve configuration from environment variables (for GitHub Actions/public production pipelines) 
 // or fallback to the auto-generated workspace configuration json for AI Studio developer environment.
 const metaEnv = (import.meta as any).env || {};
+
+// Safely resolve the gitignored firebase-applet-config.json using a glob pattern to prevent
+// compilation/bundling errors when built in pipelines (like GitHub Actions) where the file is absent.
+const firebaseConfigGlob = (import.meta as any).glob('../firebase-applet-config.json', { eager: true });
+const globKeys = Object.keys(firebaseConfigGlob);
+const firebaseConfig = globKeys.length > 0 ? (firebaseConfigGlob[globKeys[0]]?.default || {}) : {};
+
 const resolvedConfig = {
-  apiKey: metaEnv.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
-  authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
-  projectId: metaEnv.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
-  appId: metaEnv.VITE_FIREBASE_APP_ID || firebaseConfig.appId,
-  storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
-  messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
-  firestoreDatabaseId: metaEnv.VITE_FIREBASE_DATABASE_ID || firebaseConfig.firestoreDatabaseId || (firebaseConfig as any).firestoreDatabaseId,
+  apiKey: metaEnv.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey || '',
+  authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain || '',
+  projectId: metaEnv.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId || '',
+  appId: metaEnv.VITE_FIREBASE_APP_ID || firebaseConfig.appId || '',
+  storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket || '',
+  messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId || '',
+  firestoreDatabaseId: metaEnv.VITE_FIREBASE_DATABASE_ID || firebaseConfig.firestoreDatabaseId || (firebaseConfig as any).firestoreDatabaseId || '',
 };
 
 
