@@ -23,9 +23,47 @@ const resolvedConfig = {
 };
 
 
-const app = initializeApp(resolvedConfig);
-export const db = getFirestore(app, resolvedConfig.firestoreDatabaseId); /* CRITICAL: The app will break without this line */
-export const auth = getAuth(app);
+// Check if we have a valid-looking configuration
+const isValidConfig = resolvedConfig.apiKey && resolvedConfig.apiKey.startsWith('AIzaSy');
+
+let appInstance: any;
+let dbInstance: any;
+let authInstance: any;
+
+if (isValidConfig) {
+  try {
+    appInstance = initializeApp(resolvedConfig);
+    dbInstance = getFirestore(appInstance, resolvedConfig.firestoreDatabaseId);
+    authInstance = getAuth(appInstance);
+  } catch (err) {
+    console.warn("Failed to initialize Firebase with environment config, using fallback client:", err);
+    setupFallback();
+  }
+} else {
+  console.info("Missing or incomplete Firebase API key. Running watch app in demo fallback mode.");
+  setupFallback();
+}
+
+function setupFallback() {
+  // Use a syntactically valid dummy config to allow high-level Firestore SDK methods (doc, collection, etc.)
+  // to evaluate successfully without throwing fatal initialization exceptions.
+  const fallbackConfig = {
+    apiKey: "AIzaSyDUMMY_KEY_FOR_STANDALONE_BUILD_ONLY_XYZ",
+    authDomain: "dummy-project.firebaseapp.com",
+    projectId: "dummy-project",
+    appId: "1:123456789012:web:1234567890abcdef123456",
+  };
+  try {
+    appInstance = initializeApp(fallbackConfig);
+    dbInstance = getFirestore(appInstance);
+  } catch (e) {
+    dbInstance = {} as any;
+  }
+  authInstance = { currentUser: null };
+}
+
+export const db = dbInstance; /* CRITICAL: The app will break without this line */
+export const auth = authInstance;
 
 
 // CRITICAL CONSTRAINT: Test connection on boot
