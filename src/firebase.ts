@@ -33,7 +33,11 @@ let authInstance: any;
 if (isValidConfig) {
   try {
     appInstance = initializeApp(resolvedConfig);
-    dbInstance = getFirestore(appInstance, resolvedConfig.firestoreDatabaseId);
+    // Only pass the database ID parameter if it is explicitly provided and non-empty.
+    // If it's empty, getFirestore(appInstance) correctly defaults to the "(default)" database.
+    dbInstance = resolvedConfig.firestoreDatabaseId
+      ? getFirestore(appInstance, resolvedConfig.firestoreDatabaseId)
+      : getFirestore(appInstance);
     authInstance = getAuth(appInstance);
   } catch (err) {
     console.warn("Failed to initialize Firebase with environment config, using fallback client:", err);
