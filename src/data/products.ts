@@ -1,9 +1,7 @@
 import { WatchModel } from '../types';
-
-// Assign static URL path strings for the generated images to bypass direct assets filesystem import warnings
-const oceanChronographImg = '/src/assets/images/ocean_chronograph_1779464380877.png';
-const goldTourbillonImg = '/src/assets/images/gold_tourbillon_1779464402038.png';
-const minimalTitaniumImg = '/src/assets/images/minimal_titanium_1779464421651.png';
+import oceanChronographImg from '../assets/images/ocean_chronograph_1779464380877.png';
+import goldTourbillonImg from '../assets/images/gold_tourbillon_1779464402038.png';
+import minimalTitaniumImg from '../assets/images/minimal_titanium_1779464421651.png';
 
 export const products: WatchModel[] = [
   {
