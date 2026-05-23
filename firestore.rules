@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net - Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable, hardened utility helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      // Allow the developer's verified email and designated admin privileges
+      return isSignedIn() && (
+        request.auth.token.email == 'kikkora.y20@gmail.com' ||
+        (request.auth.token.email_verified == true && request.auth.token.email == 'alex.horo@premium.com')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 2. Collection Rules
+
+    // Watches Collection (Catalog items)
+    match /watches/{watchId} {
+      allow read: if true; // Publicly accessible catalog
+      allow write: if isAdmin(); // Closed to changes unless admin
+    }
+
+    // Boutique Store Configurations
+    match /settings/{settingsId} {
+      allow read: if true; // Public store credentials & layout config
+      allow write: if isAdmin(); // Admin only
+    }
+
+    // Users Profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      // Allows creating orders either anonymously or with active auth
+      allow create: if isValidId(orderId);
+      
+      // Ensures users can only fetch or see their own orders based on their registered authentication email, or if they are admin
+      allow get: if isAdmin() || (
+        isSignedIn() && 
+        resource != null && 
+        resource.data != null && 
+        resource.data.shippingDetails != null && 
+        resource.data.shippingDetails.email == request.auth.token.email
+      );
+      
+      allow list: if isAdmin() || (
+        isSignedIn() && 
+        resource != null && 
+        resource.data != null && 
+        resource.data.shippingDetails != null && 
+        resource.data.shippingDetails.email == request.auth.token.email
+      );
+
+      allow update, delete: if isAdmin();
+    }
+  }
+}

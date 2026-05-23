@@ -12,6 +12,10 @@ import { products } from './data/products';
 import { CartItem, WatchModel, CheckoutDetails, UserProfile, CompactOrder, BoutiqueSettings } from './types';
 import { ShieldCheck, ArrowRight, Info, Clock, AlertCircle } from 'lucide-react';
 
+// Firebase Database & Authentication Setup
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from './firebase';
+
 export default function App() {
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('chronos_cart');
@@ -90,30 +94,125 @@ export default function App() {
 
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
-  // Sync cart to local storage
+  // ---------------------------------------------------------------------------
+  // Firestore Data Loader (Catalog settings & products initialization)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    // 1. Fetch Boutique Settings
+    const loadBoutiqueSettings = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'boutique_config');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setBoutiqueSettings(docSnap.data() as BoutiqueSettings);
+        } else {
+          // Initialize/seed settings to Firestore in first invocation
+          const defaultSettings: BoutiqueSettings = {
+            storeName: 'CHRONOS',
+            promoCode: 'SHOPIFY20',
+            promoDiscountPercent: 20,
+            heroTitle: 'Precision Built',
+            heroSub: 'For Generation Sovereigns',
+            heroDesc: 'Experience the masterworks of micro-mechanics. Our watches combine aerospace-grade lightweight titanium housing, box sapphire crystals, and complex gear-turning manual Tourbillon calibre movements.',
+            warrantyActive: true,
+          };
+          try {
+            await setDoc(docRef, defaultSettings);
+          } catch (writeErr) {
+            console.warn("Seeding default boutique config skipped (Admin auth required). Operating with local fallback and state.");
+          }
+          setBoutiqueSettings(defaultSettings);
+        }
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'settings/boutique_config');
+      }
+    };
+
+    // 2. Fetch Catalog (Watches)
+    const loadCatalog = async () => {
+      try {
+        const colRef = collection(db, 'watches');
+        const querySnap = await getDocs(colRef);
+        if (querySnap.empty) {
+          // Seed catalog watches to Firestore database
+          try {
+            for (const w of products) {
+              await setDoc(doc(db, 'watches', w.id), w);
+            }
+          } catch (writeErr) {
+            console.warn("Seeding default catalog skipped (Admin auth required). Operating with local fallback and state.");
+          }
+          setCatalog(products);
+        } else {
+          const loadedWatches: WatchModel[] = [];
+          querySnap.forEach((doc) => {
+            loadedWatches.push(doc.data() as WatchModel);
+          });
+          setCatalog(loadedWatches);
+        }
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'watches');
+      }
+    };
+
+    loadBoutiqueSettings();
+    loadCatalog();
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Real-time Orders Listener (Updates instantly on state changes)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    let unsubscribe: () => void = () => {};
+
+    const setupOrdersListener = () => {
+      try {
+        const ordersCol = collection(db, 'orders');
+        let ordersQuery;
+
+        if (currentUser?.isAdmin) {
+          // Administrators see all boutique orders
+          ordersQuery = query(ordersCol);
+        } else if (currentUser?.isLoggedIn && currentUser.email) {
+          // Authenticated users get their personal orders
+          ordersQuery = query(
+            ordersCol,
+            where('shippingDetails.email', '==', currentUser.email)
+          );
+        } else {
+          // Fallback static list (from localStorage/seed) when logged out and non-admin
+          return;
+        }
+
+        unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+          const loadedOrders: CompactOrder[] = [];
+          snapshot.forEach((doc) => {
+            loadedOrders.push(doc.data() as CompactOrder);
+          });
+          // Sort client-side to avoid composite indexing limits
+          loadedOrders.sort((a, b) => b.date.localeCompare(a.date));
+          setOrders(loadedOrders);
+        }, (error) => {
+          handleFirestoreError(error, OperationType.GET, 'orders_query');
+        });
+      } catch (err) {
+        console.error('Failed to setup orders listener: ', err);
+      }
+    };
+
+    setupOrdersListener();
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Sync cart to local storage (Cart is purely client side session)
   useEffect(() => {
     localStorage.setItem('chronos_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Sync user profile state
+  // Sync user profile state locally as well
   useEffect(() => {
     localStorage.setItem('chronos_user', JSON.stringify(currentUser));
   }, [currentUser]);
-
-  // Sync tracking orders list
-  useEffect(() => {
-    localStorage.setItem('chronos_orders', JSON.stringify(orders));
-  }, [orders]);
-
-  // Sync dynamic catalog list
-  useEffect(() => {
-    localStorage.setItem('chronos_catalog', JSON.stringify(catalog));
-  }, [catalog]);
-
-  // Sync boutique configuration setting
-  useEffect(() => {
-    localStorage.setItem('chronos_settings', JSON.stringify(boutiqueSettings));
-  }, [boutiqueSettings]);
 
   // Trigger floating alert banners
   const triggerNotification = (message: string) => {
@@ -187,37 +286,182 @@ export default function App() {
       trackingNumber: trackingCode,
     };
 
+    // Save order payload securely inside Firestore database
+    const saveOrderToFirestore = async () => {
+      try {
+        await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+      } catch (e) {
+        handleFirestoreError(e, OperationType.WRITE, `orders/${newOrder.id}`);
+      }
+    };
+    saveOrderToFirestore();
+
     setOrders((prev) => [newOrder, ...prev]);
 
     // Update active registered member tier / award points
     if (currentUser && currentUser.isLoggedIn) {
-      setCurrentUser((prevUser) => {
-        if (!prevUser) return null;
-        const newPoints = prevUser.loyaltyPoints + Math.floor(totalAmount / 10000);
-        let tier: UserProfile['memberTier'] = 'Loyal Collector';
-        if (newPoints > 100) tier = 'Grand Sovereign';
-        else if (newPoints > 40) tier = 'Vanguard';
+      const newPoints = currentUser.loyaltyPoints + Math.floor(totalAmount / 10000);
+      let tier: UserProfile['memberTier'] = 'Loyal Collector';
+      if (newPoints > 100) tier = 'Grand Sovereign';
+      else if (newPoints > 40) tier = 'Vanguard';
 
-        return {
-          ...prevUser,
-          loyaltyPoints: newPoints,
-          memberTier: tier,
-        };
-      });
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        loyaltyPoints: newPoints,
+        memberTier: tier,
+      };
+      
+      setCurrentUser(updatedUser);
+
+      // Persist the updated loyalty profile to Firestore
+      const saveUserProfile = async () => {
+        try {
+          const userIdKey = updatedUser.email.replace(/[.@]/g, '_');
+          await setDoc(doc(db, 'users', userIdKey), updatedUser);
+        } catch (e) {
+          handleFirestoreError(e, OperationType.WRITE, `users/${updatedUser.email}`);
+        }
+      };
+      saveUserProfile();
     } else {
       // Auto register/enroll customer profile so tracking is instantly visible in client
-      setCurrentUser({
+      const anonymousProfile: UserProfile = {
         email: details.email,
         fullName: details.fullName,
         isLoggedIn: true,
         memberTier: 'Loyal Collector',
         loyaltyPoints: Math.floor(totalAmount / 10000),
-      });
+      };
+      setCurrentUser(anonymousProfile);
+
+      const saveUserProfile = async () => {
+        try {
+          const userIdKey = anonymousProfile.email.replace(/[.@]/g, '_');
+          await setDoc(doc(db, 'users', userIdKey), anonymousProfile);
+        } catch (e) {
+          handleFirestoreError(e, OperationType.WRITE, `users/${anonymousProfile.email}`);
+        }
+      };
+      saveUserProfile();
     }
 
     setCart([]);
     setIsCheckoutOpen(false);
     triggerNotification(`Order ${newOrder.id} logged; tracking initialized!`);
+  };
+
+  // ---------------------------------------------------------------------------
+  // Admin Firestore Operations
+  // ---------------------------------------------------------------------------
+  const handleUpdateCatalog = async (newCatalog: WatchModel[]) => {
+    const oldCatalog = [...catalog];
+    setCatalog(newCatalog);
+    if (activeWatchPage && !newCatalog.some(w => w.id === activeWatchPage.id)) {
+      setActiveWatchPage(null);
+    }
+    
+    try {
+      // Deletions
+      const deleted = oldCatalog.filter(oldW => !newCatalog.some(newW => newW.id === oldW.id));
+      for (const w of deleted) {
+        await deleteDoc(doc(db, 'watches', w.id));
+      }
+      // Overwrites/Additions
+      for (const w of newCatalog) {
+        await setDoc(doc(db, 'watches', w.id), w);
+      }
+      triggerNotification('Inventory catalog synced down to Firestore cloud successfully!');
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, 'watches');
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: CompactOrder['status']) => {
+    try {
+      const docRef = doc(db, 'orders', orderId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const orderData = docSnap.data() as CompactOrder;
+        orderData.status = status;
+        await setDoc(docRef, orderData);
+        triggerNotification(`Order ${orderId} status updated to "${status}" in Cloud.`);
+      } else {
+        // Fallback local update
+        setOrders((prev) =>
+          prev.map((ord) => (ord.id === orderId ? { ...ord, status } : ord))
+        );
+      }
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `orders/${orderId}`);
+    }
+  };
+
+  const handleAddOrderSimulation = async () => {
+    const rId = Math.floor(1000 + Math.random() * 9000);
+    const rItem = catalog[Math.floor(Math.random() * catalog.length)] || products[0];
+    const testOrder: CompactOrder = {
+      id: `GID-ORDER-${rId}`,
+      date: new Date().toISOString().split('T')[0],
+      total: rItem.price,
+      items: [{ watch: rItem, quantity: 1 }],
+      shippingDetails: {
+        fullName: 'Victoria Pendelton',
+        email: 'victoria.pendelton@collector-perks.com',
+        address: '902 Royal Crest Way',
+        city: 'Mumbai',
+        postalCode: '400001',
+        country: 'India',
+        shippingMethod: 'air_priority',
+        giftWrapping: true,
+        discountCode: 'MASTERDASH',
+      } as any,
+      status: 'confirmed',
+      trackingNumber: `LP-${Math.floor(100000 + Math.random() * 900000)}-CH`,
+    };
+
+    try {
+      await setDoc(doc(db, 'orders', testOrder.id), testOrder);
+      triggerNotification(`Simulated live purchase for ${testOrder.id} saved in Firestore.`);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `orders/${testOrder.id}`);
+    }
+  };
+
+  const handleClearOrders = async () => {
+    if (confirm('Clear all historical tracked order records?')) {
+      try {
+        const snap = await getDocs(collection(db, 'orders'));
+        for (const docSnap of snap.docs) {
+          await deleteDoc(doc(db, 'orders', docSnap.id));
+        }
+        setOrders([]);
+        triggerNotification('Dispatch tracking logs wiped from Firestore database.');
+      } catch (e) {
+        handleFirestoreError(e, OperationType.DELETE, 'orders');
+      }
+    }
+  };
+
+  const handleUpdateSettings = async (newSettings: BoutiqueSettings) => {
+    setBoutiqueSettings(newSettings);
+    try {
+      await setDoc(doc(db, 'settings', 'boutique_config'), newSettings);
+      triggerNotification('Store layout and policies updated in Firestore.');
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, 'settings/boutique_config');
+    }
+  };
+
+  const handleRestoreOriginals = async () => {
+    try {
+      setCatalog(products);
+      for (const p of products) {
+        await setDoc(doc(db, 'watches', p.id), p);
+      }
+      triggerNotification('Swiss defaults restored and written to Firestore!');
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, 'watches');
+    }
   };
 
   // Search routing filter criteria
@@ -296,56 +540,14 @@ export default function App() {
         {isAdminDashboardActive ? (
           <MasterDashboard
             catalog={catalog}
-            onUpdateCatalog={(newCatalog) => {
-              setCatalog(newCatalog);
-              if (activeWatchPage && !newCatalog.some(w => w.id === activeWatchPage.id)) {
-                setActiveWatchPage(null);
-              }
-            }}
+            onUpdateCatalog={handleUpdateCatalog}
             orders={orders}
-            onUpdateOrderStatus={(orderId, status) => {
-              setOrders((prev) =>
-                prev.map((ord) => (ord.id === orderId ? { ...ord, status } : ord))
-              );
-              triggerNotification(`Order ${orderId} dispatch status set: ${status}`);
-            }}
-            onAddOrderSimulation={() => {
-              const rId = Math.floor(1000 + Math.random() * 9000);
-              const rItem = catalog[Math.floor(Math.random() * catalog.length)] || products[0];
-              const testOrder: CompactOrder = {
-                id: `GID-ORDER-${rId}`,
-                date: new Date().toISOString().split('T')[0],
-                total: rItem.price,
-                items: [{ watch: rItem, quantity: 1 }],
-                shippingDetails: {
-                  fullName: 'Victoria Pendelton',
-                  email: 'victoria.pendelton@collector-perks.com',
-                  address: '902 Royal Crest Way',
-                  city: 'Mumbai',
-                  postalCode: '400001',
-                  country: 'India',
-                  shippingMethod: 'air_priority',
-                  giftWrapping: true,
-                  discountCode: 'MASTERDASH',
-                } as any,
-                status: 'confirmed',
-                trackingNumber: `LP-${Math.floor(100000 + Math.random() * 900000)}-CH`,
-              };
-              setOrders((prev) => [testOrder, ...prev]);
-              triggerNotification(`Simulated live purchase for Order ${testOrder.id} successfully.`);
-            }}
-            onClearOrders={() => {
-              if (confirm('Clear all historical tracked order records?')) {
-                setOrders([]);
-                triggerNotification('Dispatch tracking logs wiped.');
-              }
-            }}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onAddOrderSimulation={handleAddOrderSimulation}
+            onClearOrders={handleClearOrders}
             settings={boutiqueSettings}
-            onUpdateSettings={setBoutiqueSettings}
-            onRestoreOriginals={() => {
-              setCatalog(products);
-              triggerNotification('Inventory collection restored to Swiss default specifications.');
-            }}
+            onUpdateSettings={handleUpdateSettings}
+            onRestoreOriginals={handleRestoreOriginals}
             onClose={() => setIsAdminDashboardActive(false)}
           />
         ) : activeWatchPage ? (
@@ -544,22 +746,58 @@ export default function App() {
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
         user={currentUser}
-        onLogin={(email, fullName) => {
+        onLogin={async (email, fullName) => {
           const isAdmin = email.trim() === '7737421738';
-          setCurrentUser({
-            email,
-            fullName: isAdmin ? 'Master Horologist' : fullName,
-            isLoggedIn: true,
-            memberTier: isAdmin ? 'Master Horologist' : 'Loyal Collector',
-            loyaltyPoints: isAdmin ? 9999 : 15,
-            isAdmin: isAdmin,
-          });
-
+          
           if (isAdmin) {
+            const adminUser: UserProfile = {
+              email,
+              fullName: 'Master Horologist',
+              isLoggedIn: true,
+              memberTier: 'Master Horologist',
+              loyaltyPoints: 9999,
+              isAdmin: true,
+            };
+            setCurrentUser(adminUser);
             setIsAdminDashboardActive(true); // Automatically switch onto the administrative console!
             triggerNotification(`Authorized Admin Session. Master Dashboard loaded.`);
-          } else {
-            triggerNotification(`Welcome back, ${fullName}! Session active.`);
+            return;
+          }
+
+          // Fetch or initialize persistent user session from Firestore
+          const userIdKey = email.replace(/[.@]/g, '_');
+          try {
+            const docRef = doc(db, 'users', userIdKey);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+              const loadedProfile = docSnap.data() as UserProfile;
+              setCurrentUser({
+                ...loadedProfile,
+                isLoggedIn: true,
+              });
+              triggerNotification(`Welcome back, ${loadedProfile.fullName || fullName}! Session synced with Firestore.`);
+            } else {
+              const newProfile: UserProfile = {
+                email,
+                fullName: fullName || 'Vanguard Collector',
+                isLoggedIn: true,
+                memberTier: 'Loyal Collector',
+                loyaltyPoints: 15,
+              };
+              await setDoc(docRef, newProfile);
+              setCurrentUser(newProfile);
+              triggerNotification(`Enrolled successfully! Profile initialized in Firestore.`);
+            }
+          } catch (e) {
+            handleFirestoreError(e, OperationType.GET, `users/${email}`);
+            // Fallback local registration if database fails
+            setCurrentUser({
+              email,
+              fullName,
+              isLoggedIn: true,
+              memberTier: 'Loyal Collector',
+              loyaltyPoints: 15,
+            });
           }
         }}
         onLogout={() => {
@@ -568,12 +806,7 @@ export default function App() {
           triggerNotification('Boutique session cleared successfully.');
         }}
         orders={orders}
-        onUpdateOrderStatus={(orderId, status) => {
-          setOrders((prev) =>
-            prev.map((ord) => (ord.id === orderId ? { ...ord, status } : ord))
-          );
-          triggerNotification(`Order ${orderId} dispatch status: ${status}`);
-        }}
+        onUpdateOrderStatus={handleUpdateOrderStatus}
       />
 
     </div>

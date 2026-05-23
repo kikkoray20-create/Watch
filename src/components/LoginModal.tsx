@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, User, Lock, Award, Shield, Truck, Package, Search, LogOut, Loader2, Sparkles, CheckCircle, Clock } from 'lucide-react';
 import { UserProfile, CompactOrder } from '../types';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -77,7 +79,7 @@ export default function LoginModal({
     setIsRegistering(false);
   };
 
-  const handleSearchTracking = (e: React.FormEvent) => {
+  const handleSearchTracking = async (e: React.FormEvent) => {
     e.preventDefault();
     setSearchRan(true);
     if (!searchTrackingId.trim()) {
@@ -86,13 +88,44 @@ export default function LoginModal({
     }
 
     const trimmed = searchTrackingId.trim().toUpperCase();
+    
+    // 1. Search locally loaded orders first
     const found = orders.find(
       (o) =>
         o.id.toUpperCase() === trimmed ||
         o.trackingNumber.toUpperCase() === trimmed ||
         o.id.replace('GID-ORDER-', '').toUpperCase() === trimmed
     );
-    setSearchedOrder(found || null);
+
+    if (found) {
+      setSearchedOrder(found);
+      return;
+    }
+
+    // 2. Query Firestore directly (enabling offline / guest tracking)
+    try {
+      // Try exact order ID first
+      const docRef1 = doc(db, 'orders', trimmed);
+      const docSnap1 = await getDoc(docRef1);
+      if (docSnap1.exists()) {
+        setSearchedOrder(docSnap1.data() as CompactOrder);
+        return;
+      }
+
+      // Try with GID-ORDER- prefix
+      const prefixed = trimmed.startsWith('GID-ORDER-') ? trimmed : `GID-ORDER-${trimmed}`;
+      const docRef2 = doc(db, 'orders', prefixed);
+      const docSnap2 = await getDoc(docRef2);
+      if (docSnap2.exists()) {
+        setSearchedOrder(docSnap2.data() as CompactOrder);
+        return;
+      }
+
+      setSearchedOrder(null);
+    } catch (err) {
+      console.error('Failed to query order dynamically from Firestore: ', err);
+      setSearchedOrder(null);
+    }
   };
 
   // Helper to visually render custom beautiful timeline

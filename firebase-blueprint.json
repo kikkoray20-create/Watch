@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "WatchModel": {
+      "title": "WatchModel",
+      "description": "Represents a luxury watch timepiece in the boutique catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "brand": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "specs": { "type": "object" },
+        "stock": { "type": "number" },
+        "rating": { "type": "number" }
+      },
+      "required": ["id", "name", "brand", "price", "category", "imageUrl", "description", "specs", "stock", "rating"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account registration and loyalty information",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "fullName": { "type": "string" },
+        "isLoggedIn": { "type": "boolean" },
+        "memberTier": { "type": "string" },
+        "loyaltyPoints": { "type": "number" },
+        "isAdmin": { "type": "boolean" }
+      },
+      "required": ["email", "fullName", "isLoggedIn", "memberTier", "loyaltyPoints"]
+    },
+    "BoutiqueSettings": {
+      "title": "BoutiqueSettings",
+      "description": "Store configuration and active promotions",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "promoCode": { "type": "string" },
+        "promoDiscountPercent": { "type": "number" },
+        "heroTitle": { "type": "string" },
+        "heroSub": { "type": "string" },
+        "heroDesc": { "type": "string" },
+        "warrantyActive": { "type": "boolean" }
+      },
+      "required": ["storeName", "promoCode", "promoDiscountPercent", "heroTitle", "heroSub", "heroDesc", "warrantyActive"]
+    },
+    "CompactOrder": {
+      "title": "CompactOrder",
+      "description": "Log of finalized purchase orders along with shipping details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "total": { "type": "number" },
+        "items": { "type": "array" },
+        "shippingDetails": { "type": "object" },
+        "status": { "type": "string" },
+        "trackingNumber": { "type": "string" }
+      },
+      "required": ["id", "date", "total", "items", "shippingDetails", "status", "trackingNumber"]
+    }
+  },
+  "firestore": {
+    "/watches/{watchId}": {
+      "schema": "WatchModel",
+      "description": "Interactive storefront watch inventory"
+    },
+    "/orders/{orderId}": {
+      "schema": "CompactOrder",
+      "description": "Tracks customer orders"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Saves user profile settings and loyalty statistics"
+    },
+    "/settings/{settingsId}": {
+      "schema": "BoutiqueSettings",
+      "description": "Store configurations"
+    }
+  }
+}
