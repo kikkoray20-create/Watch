@@ -183,21 +183,26 @@ export default function App() {
     // 3. Seed Master Admin credential profile in Firestore
     const seedAdminUser = async () => {
       try {
-        const docRef = doc(db, 'users', '7737421738');
-        const docSnap = await getDoc(docRef);
-        if (!docSnap.exists()) {
-          const adminProfile: any = {
-            email: '7737421738',
-            fullName: 'Master Horologist',
-            isLoggedIn: false,
-            memberTier: 'Master Horologist',
-            loyaltyPoints: 9999,
-            isAdmin: true,
-            password: '123'
-          };
-          await setDoc(docRef, adminProfile);
-          console.log('[Firebase Seeder] Master user profile created in Firestore.');
-        }
+        const seedSingleDoc = async (userId: string, emailVal: string) => {
+          const docRef = doc(db, 'users', userId);
+          const docSnap = await getDoc(docRef);
+          if (!docSnap.exists()) {
+            const adminProfile: any = {
+              email: emailVal,
+              fullName: 'Master Horologist',
+              isLoggedIn: false,
+              memberTier: 'Master Horologist',
+              loyaltyPoints: 9999,
+              isAdmin: true,
+              password: '123'
+            };
+            await setDoc(docRef, adminProfile);
+          }
+        };
+
+        await seedSingleDoc('admin', 'admin@chronos.com');
+        await seedSingleDoc('admin_chronos_com', 'admin@chronos.com');
+        console.log('[Firebase Seeder] Master user profile verification completed.');
       } catch (err) {
         console.warn('Skipped admin seeding (local mode fallback or auth restricted).', err);
       }
@@ -834,7 +839,7 @@ export default function App() {
               }
             } else {
               // Special handling for the Master admin user if database is completely empty / not seeded
-              if (trimmedEmail === '7737421738') {
+              if (trimmedEmail === 'admin' || trimmedEmail === 'admin@chronos.com') {
                 if (password === '123') {
                   const adminUser: UserProfile = {
                     email: trimmedEmail,
@@ -867,7 +872,7 @@ export default function App() {
             }
           } catch (e: any) {
             // Local fallback login checks when Firebase configuration is offline
-            if (trimmedEmail === '7737421738') {
+            if (trimmedEmail === 'admin' || trimmedEmail === 'admin@chronos.com') {
               if (password === '123') {
                 const adminUser: UserProfile = {
                   email: trimmedEmail,

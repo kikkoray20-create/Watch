@@ -21,9 +21,11 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [contactOption, setContactOption] = useState<'phone' | 'email'>('phone');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    phone: '',
     address: '',
     city: '',
     postalCode: '',
@@ -55,6 +57,7 @@ export default function CheckoutModal({
     setFormData({
       fullName: 'Alexandre Horologue',
       email: 'alex.horo@premium.com',
+      phone: '+91 98765 43210',
       address: '742 Chronograph Avenue',
       city: 'Geneva',
       postalCode: '1201',
@@ -70,8 +73,16 @@ export default function CheckoutModal({
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
     if (step === 1) {
-      if (!formData.fullName || !formData.email || !formData.address || !formData.city) {
-        alert('Please complete all contact and mailing coordinates.');
+      if (!formData.fullName) {
+        alert('Please complete the compulsory Subscriber Name.');
+        return;
+      }
+      if (contactOption === 'phone' && !formData.phone) {
+        alert('Please complete the compulsory Mobile Number.');
+        return;
+      }
+      if (contactOption === 'email' && !formData.email) {
+        alert('Please complete the compulsory Contact Email.');
         return;
       }
       setStep(2);
@@ -79,11 +90,6 @@ export default function CheckoutModal({
   };
 
   const handlePay = () => {
-    if (!formData.cardNumber || !formData.cardName || !formData.expiry || !formData.cvv) {
-      alert('Please fill out the credit card specifications.');
-      return;
-    }
-
     setIsProcessing(true);
 
     // Simulate luxury API gateway check in 1.5 seconds
@@ -205,9 +211,49 @@ export default function CheckoutModal({
           {step === 1 && (
             <form onSubmit={handleNextStep} className="space-y-4 text-left">
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Contact Priority Toggle */}
+              <div className="bg-[#121212] p-4 rounded-xl border border-white/5 space-y-3">
+                <span className="text-[10px] font-mono uppercase text-stone-400 block tracking-widest">
+                  Secure Customer Verification Mode
+                </span>
+                
+                {/* 2 options for customer */}
+                <div className="grid grid-cols-2 gap-2 p-1 bg-black rounded-lg border border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContactOption('phone');
+                    }}
+                    className={`py-2 px-3 rounded-md text-xs font-mono transition-all text-center cursor-pointer ${
+                      contactOption === 'phone'
+                        ? 'bg-amber-500 text-black font-bold shadow-md'
+                        : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    1. Customer Has Mobile Number
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContactOption('email');
+                    }}
+                    className={`py-2 px-3 rounded-md text-xs font-mono transition-all text-center cursor-pointer ${
+                      contactOption === 'email'
+                        ? 'bg-amber-500 text-black font-bold shadow-md'
+                        : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    2. No Number (Email Verification)
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* Full Subscriber Name - ALWAYS Compulsory */}
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Full Subscriber Name</label>
+                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                    Full Subscriber Name <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                  </label>
                   <input
                     type="text"
                     name="fullName"
@@ -218,26 +264,79 @@ export default function CheckoutModal({
                     className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Contact Email Address</label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="alex.horo@premium.com"
-                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
+
+                {/* Conditional Contact Render */}
+                {contactOption === 'phone' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                        Mobile Number <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        required
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="+91 98765 43210"
+                        className="w-full px-3 py-2 rounded-lg border border-amber-500/20 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
+                        Contact Email Address <span className="text-stone-600">(Optional)</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="alex.horo@premium.com"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-[#dcdcdc] text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                        Contact Email Address <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        required
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="alex.horo@premium.com"
+                        className="w-full px-3 py-2 rounded-lg border border-amber-500/20 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono uppercase text-stone-600 block mb-1">
+                        Mobile Number <span className="text-stone-700">(No Number Available)</span>
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value=""
+                        disabled
+                        placeholder="No number option selected"
+                        className="w-full px-3 py-2 rounded-lg border border-white/5 bg-[#121212]/30 text-stone-600 text-sm focus:outline-none cursor-not-allowed font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* Other Fields - Optional / Not Compulsory */}
               <div>
-                <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Shipping Destination Address</label>
+                <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
+                  Shipping Destination Address <span className="text-stone-600">(Optional)</span>
+                </label>
                 <input
                   type="text"
                   name="address"
-                  required
                   value={formData.address}
                   onChange={handleInputChange}
                   placeholder="742 Chronograph Avenue"
@@ -247,11 +346,12 @@ export default function CheckoutModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">City / Region</label>
+                  <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
+                    City / Region <span className="text-stone-600">(Optional)</span>
+                  </label>
                   <input
                     type="text"
                     name="city"
-                    required
                     value={formData.city}
                     onChange={handleInputChange}
                     placeholder="Geneva"
@@ -259,11 +359,12 @@ export default function CheckoutModal({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Postal Zip Code</label>
+                  <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
+                    Postal Zip Code <span className="text-stone-600">(Optional)</span>
+                  </label>
                   <input
                     type="text"
                     name="postalCode"
-                    required
                     value={formData.postalCode}
                     onChange={handleInputChange}
                     placeholder="1201"
@@ -273,7 +374,9 @@ export default function CheckoutModal({
               </div>
 
               <div>
-                <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Country</label>
+                <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
+                  Country <span className="text-stone-600">(Optional)</span>
+                </label>
                 <select
                   name="country"
                   value={formData.country}
@@ -306,90 +409,37 @@ export default function CheckoutModal({
           )}
 
           {step === 2 && (
-            <div className="space-y-4 text-left">
-              {/* Payment instructions */}
-              <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/5">
-                <div className="h-9 w-14 bg-black rounded-md flex items-center justify-center text-white/90 font-mono text-xs font-bold leading-none tracking-widest p-1 border border-white/10 shrink-0">
-                  CHRONO
-                </div>
-                <div className="text-[11px] text-stone-400 leading-relaxed">
-                  <b>Simulated Vault</b>. Your transaction is mock-tokenized securely under SSL. Private credentials never reach or affect any live billing channels.
-                </div>
-              </div>
-
-              {/* Credit card styling mockup */}
-              <div className="bg-gradient-to-r from-stone-900 via-[#121212] to-stone-900 p-6 rounded-2xl text-white shadow-lg space-y-6 relative border border-white/10 overflow-hidden select-none">
-                <div className="absolute right-6 top-6 opacity-5">
-                  <Terminal className="h-28 w-28 text-white" />
+            <div className="space-y-6 text-left py-4">
+              {/* Luxury Contact/Payment Notice segment */}
+              <div className="bg-[#0e0e0e] border border-amber-500/20 p-8 rounded-xl text-center space-y-4 shadow-[0_4px_30px_rgba(245,158,11,0.02)]">
+                <div className="mx-auto h-12 w-12 rounded-full bg-amber-500/5 flex items-center justify-center border border-amber-500/10">
+                  <CreditCard className="h-5 w-5 text-amber-500" />
                 </div>
                 
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500">Chronos Elite Card</span>
-                    <h4 className="font-serif text-sm font-medium tracking-wide mt-0.5">Alexandre Horologue</h4>
-                  </div>
-                  <span className="text-sm tracking-widest font-mono text-amber-500 font-bold italic">⚜️ PLATINUM</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[8px] font-mono uppercase text-stone-500">Card Code Credentials</label>
-                  <p className="font-mono text-base sm:text-lg tracking-[0.2em] font-semibold text-amber-200">
-                    {formData.cardNumber || '•••• •••• •••• ••••'}
+                <h4 className="font-serif text-amber-500 text-lg font-bold tracking-widest uppercase">
+                  Payment coordination Sequence
+                </h4>
+                
+                <div className="space-y-2">
+                  <p className="font-sans font-extrabold text-[#ffffff] text-base md:text-lg tracking-wider">
+                    FOR PAYMENT, OUR TEAM WILL CONTACT YOU SOON.
                   </p>
-                </div>
-
-                <div className="flex justify-between items-end font-mono">
-                  <div>
-                    <span className="text-[8px] text-stone-500 block uppercase">Valid Thru</span>
-                    <span className="text-xs">{formData.expiry || 'MM/YY'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-stone-500 block uppercase">CVC</span>
-                    <span className="text-xs">{formData.cvv || '•••'}</span>
-                  </div>
+                  <p className="text-xs text-stone-400 font-sans max-w-md mx-auto leading-relaxed">
+                    Our luxury concierge team will get in touch with you via the provided coordinates to finalize secure transaction preferences and delivery schedule.
+                  </p>
                 </div>
               </div>
 
-              {/* Input forms */}
-              <div className="space-y-3 mt-4">
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-[#bbbbbb] block mb-1">Credit Card Number</label>
-                  <input
-                    type="text"
-                    name="cardNumber"
-                    required
-                    value={formData.cardNumber}
-                    onChange={handleInputChange}
-                    placeholder="4111 4300 2392 4242"
-                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                  />
+              <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-2 font-mono text-[11px] text-stone-400">
+                <div className="flex justify-between">
+                  <span>Contact Route:</span>
+                  <span className="text-white font-semibold">
+                    {contactOption === 'phone' ? `Mobile (${formData.phone})` : `Email (${formData.email})`}
+                  </span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-[#bbbbbb] block mb-1">Expiration MM/YY</label>
-                    <input
-                      type="text"
-                      name="expiry"
-                      required
-                      value={formData.expiry}
-                      onChange={handleInputChange}
-                      placeholder="12/29"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-[#bbbbbb] block mb-1">CVV Security Code</label>
-                    <input
-                      type="text"
-                      name="cvv"
-                      required
-                      value={formData.cvv}
-                      onChange={handleInputChange}
-                      placeholder="399"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                    />
-                  </div>
+                <div className="flex justify-between">
+                  <span>Consignee:</span>
+                  <span className="text-white font-semibold">{formData.fullName}</span>
                 </div>
               </div>
 
@@ -397,7 +447,7 @@ export default function CheckoutModal({
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="text-stone-450 hover:text-white text-xs font-semibold py-2 cursor-pointer"
+                  className="text-stone-400 hover:text-white text-xs font-semibold py-2 cursor-pointer"
                   disabled={isProcessing}
                 >
                   Go Back
@@ -412,10 +462,10 @@ export default function CheckoutModal({
                   {isProcessing ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Verifying Card...</span>
+                      <span>Confirming Order...</span>
                     </>
                   ) : (
-                    <span>Authorize Payment of ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span>Confirm Order Details</span>
                   )}
                 </button>
               </div>

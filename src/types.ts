@@ -31,6 +31,7 @@ export interface PaymentDetails {
 export interface ShippingDetails {
   fullName: string;
   email: string;
+  phone?: string;
   address: string;
   city: string;
   postalCode: string;

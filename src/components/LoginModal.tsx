@@ -29,6 +29,7 @@ export default function LoginModal({
   const [fullName, setFullName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Manual search order tracking state
   const [searchTrackingId, setSearchTrackingId] = useState('');
@@ -66,7 +67,7 @@ export default function LoginModal({
   };
 
   const handleLoadAdminDemo = () => {
-    setEmail('7737421738');
+    setEmail('admin@chronos.com');
     setPassword('123');
     setFullName('Master Horologist');
     setIsRegistering(false);
@@ -350,11 +351,11 @@ export default function LoginModal({
                 
                 <div className="space-y-1">
                   <h3 className="font-serif text-xl sm:text-2xl font-bold text-white">
-                    {isRegistering ? 'Enroll in Collector Registry' : 'Boutique Profile Access'}
+                    {isRegistering ? 'SHING UP' : 'Boutique Profile Access'}
                   </h3>
                   <p className="text-xs text-stone-400">
                     {isRegistering 
-                      ? 'Register your email to earn loyalty reward multipliers.' 
+                      ? 'SHING UP to sign up.' 
                       : 'Provide secure coordinates to manage shipments and tracking.'}
                   </p>
                 </div>
@@ -387,15 +388,24 @@ export default function LoginModal({
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="alex.horo@premium.com or 7737421738"
+                      placeholder="alex.horo@premium.com or admin"
                       className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-455 block mb-1">Privacy Password</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] font-mono uppercase text-stone-455">Privacy Password</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-[9px] font-mono text-amber-500 hover:text-amber-400 transition-colors uppercase tracking-widest select-none focus:outline-none cursor-pointer"
+                      >
+                        {showPassword ? 'Hide Password' : 'Show Password'}
+                      </button>
+                    </div>
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -415,7 +425,7 @@ export default function LoginModal({
                         <span>Verifying Credentials...</span>
                       </>
                     ) : (
-                      <span>{isRegistering ? 'Register & Enroll Member' : 'Secure Authenticated Access'}</span>
+                      <span>{isRegistering ? 'SHING UP' : 'Secure Authenticated Access'}</span>
                     )}
                   </button>
                 </form>
@@ -424,10 +434,13 @@ export default function LoginModal({
                 <div className="pt-2 text-center">
                   <button
                     type="button"
-                    onClick={() => setIsRegistering(!isRegistering)}
-                    className="text-[10px] font-mono text-stone-500 hover:text-white transition-colors uppercase tracking-wider"
+                    onClick={() => {
+                      setIsRegistering(!isRegistering);
+                      setShowPassword(false);
+                    }}
+                    className="text-[10px] font-mono text-stone-500 hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
                   >
-                    {isRegistering ? 'Already enrolled? Switch to Authentication' : 'Request Registry Account Enrolment'}
+                    {isRegistering ? 'Already enrolled? Switch to Authentication' : 'SHING UP'}
                   </button>
                 </div>
 
