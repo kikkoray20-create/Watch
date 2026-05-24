@@ -551,24 +551,6 @@ export default function App() {
         storeName={boutiqueSettings.storeName}
       />
 
-      {/* Firebase Diagnostics and Connection Warning banner in Hinglish */}
-      {firebaseConnected === false && (
-        <div className="bg-amber-950/40 border-b border-amber-500/20 text-stone-200 py-3 px-4 sm:px-6 lg:px-8 font-sans text-xs flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-20 z-35 backdrop-blur-md" id="firebase-offline-alert-banner">
-          <div className="flex items-center space-x-3">
-            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-            <span>
-              <strong>Note (Hinglish):</strong> Aapka store <strong>Safe Offline/Demo Mode</strong> me chal rha hai kyunki Firebase connect nahi hai. Checkout, catalog, and profiles perfectly work karenge.
-            </span>
-          </div>
-          <button
-            onClick={() => setShowConfigHelper(true)}
-            className="px-3.5 py-1.5 rounded-full text-[11px] font-mono font-bold bg-amber-500 text-[#050505] hover:bg-amber-400 active:scale-95 transition-all whitespace-nowrap cursor-pointer shadow-lg"
-          >
-            Firebase Config Helper Open Karein ⚙️
-          </button>
-        </div>
-      )}
-
       {/* Floating alert notifications */}
       <div className="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none select-none max-w-sm">
         {notifications.map((msg, i) => (

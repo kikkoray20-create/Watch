@@ -204,16 +204,6 @@ export default function CheckoutModal({
           
           {step === 1 && (
             <form onSubmit={handleNextStep} className="space-y-4 text-left">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 mb-2 gap-2">
-                <span className="text-[11px] text-amber-300 font-mono">Simulate a quick test checkout:</span>
-                <button
-                  type="button"
-                  onClick={handleAutoFill}
-                  className="bg-white text-black hover:bg-amber-500 font-bold text-[10px] py-1 px-3.5 rounded-md transition-colors whitespace-nowrap cursor-pointer hover:text-black"
-                >
-                  ⚡ Autofill Luxury Address
-                </button>
-              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

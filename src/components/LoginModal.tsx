@@ -188,28 +188,6 @@ export default function LoginModal({
           <p className="text-[11px] text-stone-400">
             {statuses[currentIndex]?.desc || 'Chronometer being prepared safely by watchmakers.'}
           </p>
-
-          {/* Interactive Simulation Panel for High-Fidelity Test */}
-          {onUpdateOrderStatus && (
-            <div className="pt-3.5 border-t border-white/5 mt-3 flex items-center justify-between flex-wrap gap-2 text-[10px] font-mono bg-black/40 p-2.5 rounded-lg">
-              <span className="text-amber-505/90">🛠️ DEV SIMULATOR: Update tracking state</span>
-              <div className="flex space-x-1">
-                {(['confirmed', 'processing', 'shipped', 'delivered'] as CompactOrder['status'][]).map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => onUpdateOrderStatus(order.id, st)}
-                    className={`px-2 py-1 rounded border text-[9px] transition-colors ${
-                      order.status === st
-                        ? 'bg-amber-500 text-black border-amber-500 font-bold'
-                        : 'bg-white/5 border-white/5 text-stone-400 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -387,29 +365,6 @@ export default function LoginModal({
                       : 'Provide secure coordinates to manage shipments and tracking.'}
                   </p>
                 </div>
-
-                {/* Autocomplete Quick Test Box */}
-                {!isRegistering && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <span className="text-[10px] text-amber-305 font-mono select-none">Quick sandbox testing login:</span>
-                    <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
-                      <button
-                        type="button"
-                        onClick={handleAutocompleteDemo}
-                        className="bg-white/10 hover:bg-white text-stone-200 hover:text-black font-bold font-mono text-[9px] px-2.5 py-1.5 rounded transition-colors cursor-pointer animate-pulse"
-                      >
-                        ⚡ Customer Client
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleLoadAdminDemo}
-                        className="bg-amber-500 hover:bg-amber-400 text-black font-bold font-mono text-[9px] px-2.5 py-1.5 rounded transition-colors cursor-pointer"
-                      >
-                        🛠️ Admin Portal
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 <form onSubmit={handleSubmit} className="space-y-3.5">
                   {isRegistering && (

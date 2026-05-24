@@ -630,17 +630,11 @@ export default function MasterDashboard({
                   Insular Dispatch Log Controls
                 </h3>
                 <p className="text-[11px] text-stone-450">
-                  Update customer shipping dispatch states or schedule test allocation models.
+                  Update customer shipping dispatch states.
                 </p>
               </div>
 
               <div className="flex gap-2">
-                <button
-                  onClick={onAddOrderSimulation}
-                  className="bg-amber-500/10 border border-amber-500/30 text-amber-505 hover:bg-amber-500 hover:text-black hover:border-amber-500 text-[10px] font-mono font-bold tracking-widest px-3 py-1.5 rounded uppercase cursor-pointer transition-colors"
-                >
-                  ⚡ Simulate Test Order
-                </button>
                 <button
                   onClick={onClearOrders}
                   className="bg-rose-950/20 border border-rose-900/40 text-rose-400 hover:bg-rose-900 hover:text-white hover:border-rose-900 text-[10px] font-mono font-bold tracking-widest px-3 py-1.5 rounded uppercase cursor-pointer transition-colors"
@@ -655,7 +649,7 @@ export default function MasterDashboard({
                 <Package className="h-8 w-8 text-stone-600 mx-auto" />
                 <h4 className="text-white text-xs font-semibold">No order files detected</h4>
                 <p className="text-stone-400 text-[11px] max-w-xs mx-auto">
-                  Buy a watch in the store view, or use the "Simulate Test Order" button above to populate shipping logs instantly.
+                  Buy a watch in the store view to populate shipping logs instantly.
                 </p>
               </div>
             ) : (

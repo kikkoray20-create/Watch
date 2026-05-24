@@ -84,7 +84,7 @@ function setupFallback() {
   // Use a syntactically valid dummy config to allow high-level Firestore SDK methods (doc, collection, etc.)
   // to evaluate successfully without throwing fatal initialization exceptions.
   const fallbackConfig = {
-    apiKey: "AIzaSyDUMMY_KEY_FOR_STANDALONE_BUILD_ONLY_XYZ",
+    apiKey: "dummy-key",
     authDomain: "dummy-project.firebaseapp.com",
     projectId: "dummy-project",
     appId: "1:123456789012:web:1234567890abcdef123456",
