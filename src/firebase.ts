@@ -49,11 +49,6 @@ configDiagnostics.isUsingFallback = !isValidConfig;
 console.group("🔍 Firebase Config Diagnostics Report");
 console.log("- API Key Present:", configDiagnostics.hasApiKey ? "✅ Yes" : "❌ No");
 console.log("- API Key Valid (starts with AIzaSy):", configDiagnostics.apiKeyValid ? "✅ Yes" : "❌ No/Invalid");
-console.log("- Project ID:", configDiagnostics.projectId);
-console.log("- App ID:", configDiagnostics.appId);
-console.log("- Auth Domain:", configDiagnostics.authDomain);
-console.log("- Firestore Database ID:", configDiagnostics.databaseId);
-console.log("- Running Mode:", isValidConfig ? "🚀 Production Firebase Client" : "⚠️ Standalone/Local Demo Fallback Client");
 console.groupEnd();
 
 let appInstance: any;
