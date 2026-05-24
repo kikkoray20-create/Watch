@@ -92,7 +92,7 @@ export interface CompactOrder {
   total: number;
   items: CartItem[];
   shippingDetails: ShippingDetails;
-  status: 'confirmed' | 'processing' | 'shipped' | 'delivered';
+  status: 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'rejected';
   trackingNumber: string;
 }
 

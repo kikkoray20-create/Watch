@@ -171,11 +171,16 @@ export default function App() {
       } catch (err) {
         setFirebaseConnected(false);
         setFirebaseErrorText(err instanceof Error ? err.message : String(err));
+        
+        const savedLocal = localStorage.getItem('chronos_catalog');
+        const fallbackCatalog = savedLocal ? JSON.parse(savedLocal) : products;
+        
         try {
           handleFirestoreError(err, OperationType.GET, 'watches');
+          setCatalog(fallbackCatalog);
         } catch (thrownErr) {
           console.warn("Continuing with local fallback after logging Firestore watches error.", thrownErr);
-          setCatalog(products);
+          setCatalog(fallbackCatalog);
         }
       }
     };
@@ -224,6 +229,10 @@ export default function App() {
     let unsubscribe: () => void = () => {};
 
     const setupOrdersListener = () => {
+      if (configDiagnostics.isUsingFallback) {
+        // Run purely in local storage fallback mode
+        return;
+      }
       try {
         const ordersCol = collection(db, 'orders');
         let ordersQuery;
@@ -252,6 +261,11 @@ export default function App() {
           setOrders(loadedOrders);
         }, (error) => {
           handleFirestoreError(error, OperationType.GET, 'orders_query');
+          // Graceful fallback to local orders on listener permission or connection error
+          const saved = localStorage.getItem('chronos_orders');
+          if (saved) {
+            setOrders(JSON.parse(saved));
+          }
         });
       } catch (err) {
         console.error('Failed to setup orders listener: ', err);
@@ -271,6 +285,21 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('chronos_user', JSON.stringify(currentUser));
   }, [currentUser]);
+
+  // Sync catalog timeline details to local storage backing
+  useEffect(() => {
+    localStorage.setItem('chronos_catalog', JSON.stringify(catalog));
+  }, [catalog]);
+
+  // Sync custom boutique configuration settings to local storage
+  useEffect(() => {
+    localStorage.setItem('chronos_settings', JSON.stringify(boutiqueSettings));
+  }, [boutiqueSettings]);
+
+  // Sync custom placed order logs to local storage
+  useEffect(() => {
+    localStorage.setItem('chronos_orders', JSON.stringify(orders));
+  }, [orders]);
 
   // Trigger floating alert banners
   const triggerNotification = (message: string) => {
@@ -435,6 +464,11 @@ export default function App() {
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: CompactOrder['status']) => {
+    // Optimistically update the reactive state first so that changes are seen instantly
+    setOrders((prev) =>
+      prev.map((ord) => (ord.id === orderId ? { ...ord, status } : ord))
+    );
+
     try {
       const docRef = doc(db, 'orders', orderId);
       const docSnap = await getDoc(docRef);
@@ -444,13 +478,11 @@ export default function App() {
         await setDoc(docRef, orderData);
         triggerNotification(`Order ${orderId} status updated to "${status}" in Cloud.`);
       } else {
-        // Fallback local update
-        setOrders((prev) =>
-          prev.map((ord) => (ord.id === orderId ? { ...ord, status } : ord))
-        );
+        triggerNotification(`Order ${orderId} status updated locally in current boutique session.`);
       }
     } catch (e) {
       handleFirestoreError(e, OperationType.UPDATE, `orders/${orderId}`);
+      triggerNotification(`Order ${orderId} updated locally (Cloud Sync offline).`);
     }
   };
 
@@ -477,11 +509,14 @@ export default function App() {
       trackingNumber: `LP-${Math.floor(100000 + Math.random() * 900000)}-CH`,
     };
 
+    setOrders((prev) => [testOrder, ...prev]);
+
     try {
       await setDoc(doc(db, 'orders', testOrder.id), testOrder);
       triggerNotification(`Simulated live purchase for ${testOrder.id} saved in Firestore.`);
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `orders/${testOrder.id}`);
+      triggerNotification(`Simulated purchase registered offline in current session.`);
     }
   };
 

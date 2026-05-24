@@ -721,15 +721,6 @@ export default function MasterDashboard({
                   Update customer shipping dispatch states.
                 </p>
               </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={onClearOrders}
-                  className="bg-rose-950/20 border border-rose-900/40 text-rose-400 hover:bg-rose-900 hover:text-white hover:border-rose-900 text-[10px] font-mono font-bold tracking-widest px-3 py-1.5 rounded uppercase cursor-pointer transition-colors"
-                >
-                  Clear Order Database
-                </button>
-              </div>
             </div>
 
             {orders.length === 0 ? (
@@ -814,14 +805,18 @@ export default function MasterDashboard({
                             TRANSMIT DISPATCH STATUS CHANGE
                           </span>
                           <div className="flex flex-wrap gap-1 font-mono text-[9px]">
-                            {['confirmed', 'processing', 'shipped', 'delivered'].map((st) => (
+                            {['confirmed', 'processing', 'shipped', 'delivered', 'rejected'].map((st) => (
                               <button
                                 key={st}
                                 onClick={() => onUpdateOrderStatus(order.id, st as CompactOrder['status'])}
                                 className={`px-2.5 py-1.5 rounded-lg border uppercase font-bold transition-all cursor-pointer ${
                                   order.status === st
-                                    ? 'bg-amber-500 text-black border-amber-500 hover:bg-amber-400'
-                                    : 'bg-white/5 border-white/5 text-stone-400 hover:bg-white/10 hover:text-white'
+                                    ? st === 'rejected'
+                                      ? 'bg-rose-600 text-white border-rose-600 hover:bg-rose-500'
+                                      : 'bg-amber-500 text-black border-amber-500 hover:bg-amber-400'
+                                    : st === 'rejected'
+                                      ? 'bg-rose-950/20 border-rose-900/40 text-rose-400 hover:bg-rose-900/40 hover:text-white'
+                                      : 'bg-white/5 border-white/5 text-stone-400 hover:bg-white/10 hover:text-white'
                                 }`}
                               >
                                 {st}

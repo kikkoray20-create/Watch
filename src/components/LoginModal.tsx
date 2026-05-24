@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Lock, Award, Shield, Truck, Package, Search, LogOut, Loader2, Sparkles, CheckCircle, Clock } from 'lucide-react';
+import { X, User, Lock, Award, Shield, Truck, Package, Search, LogOut, Loader2, Sparkles, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { UserProfile, CompactOrder } from '../types';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -124,6 +124,18 @@ export default function LoginModal({
 
   // Helper to visually render custom beautiful timeline
   const renderTrackingTimeline = (order: CompactOrder) => {
+    if (order.status === 'rejected') {
+      return (
+        <div className="p-6 bg-red-950/20 border border-red-900/40 rounded-xl space-y-2 text-center">
+          <AlertCircle className="h-8 w-8 text-red-500 mx-auto" />
+          <h4 className="text-red-400 font-serif text-sm font-semibold uppercase tracking-wider">Order Transaction Rejected</h4>
+          <p className="text-[11px] text-stone-300 max-w-sm mx-auto leading-relaxed">
+            This order has been rejected or canceled by the security team or boutique administrative controls. Any authorization hold has been declined.
+          </p>
+        </div>
+      );
+    }
+
     const statuses: { label: string; desc: string; key: CompactOrder['status'] }[] = [
       { label: 'Confirmed', desc: 'Secure allocation registered', key: 'confirmed' },
       { label: 'Authorized', desc: 'Technical caliber checks completed', key: 'processing' },
