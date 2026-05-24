@@ -799,12 +799,11 @@ export default function App() {
         onOrderCompleted={handleOrderCompleted}
       />
 
-      {/* Login & Order Tracking Dashboard */}
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
         user={currentUser}
-        onLogin={async (email, fullName, password) => {
+        onLogin={async (email, fullName, password, isSignUp) => {
           const trimmedEmail = email.trim();
           const userIdKey = trimmedEmail.replace(/[.@]/g, '_');
 
@@ -813,11 +812,15 @@ export default function App() {
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
+              if (isSignUp) {
+                throw new Error('This boutique profile is already registered. Please go back and authenticate.');
+              }
+
               const loadedProfile = docSnap.data() as UserProfile & { password?: string };
               
-              if (loadedProfile.password !== undefined) {
+              if (loadedProfile.password !== undefined && loadedProfile.password !== '') {
                 if (password !== loadedProfile.password) {
-                  throw new Error('Incorrect credentials entered for Master Portal.');
+                  throw new Error('Incorrect credentials entered for boutique profile.');
                 }
               }
 
@@ -858,19 +861,42 @@ export default function App() {
                 }
               }
 
+              if (!isSignUp) {
+                throw new Error('Profile not found in boutique registry. Please sign up (SHING UP) first.');
+              }
+
               // Normal register flow
-              const newProfile: UserProfile = {
+              const newProfileWithPwd: any = {
                 email: trimmedEmail,
                 fullName: fullName || 'Vanguard Collector',
                 isLoggedIn: true,
                 memberTier: 'Loyal Collector',
                 loyaltyPoints: 15,
+                password: password || '',
               };
-              await setDoc(docRef, newProfile);
+              await setDoc(docRef, newProfileWithPwd);
+
+              const newProfile: UserProfile = {
+                email: trimmedEmail,
+                fullName: newProfileWithPwd.fullName,
+                isLoggedIn: true,
+                memberTier: newProfileWithPwd.memberTier,
+                loyaltyPoints: newProfileWithPwd.loyaltyPoints,
+              };
               setCurrentUser(newProfile);
               triggerNotification(`Enrolled successfully! Profile initialized in Firestore.`);
             }
           } catch (e: any) {
+            // If it is one of our custom validation error messages, bubble it up to LoginModal
+            if (
+              e.message === 'This boutique profile is already registered. Please go back and authenticate.' ||
+              e.message === 'Profile not found in boutique registry. Please sign up (SHING UP) first.' ||
+              e.message === 'Incorrect credentials entered for boutique profile.' ||
+              e.message === 'Incorrect credentials entered for Master Portal.'
+            ) {
+              throw e;
+            }
+
             // Local fallback login checks when Firebase configuration is offline
             if (trimmedEmail === 'admin' || trimmedEmail === 'admin@chronos.com') {
               if (password === '123') {
@@ -891,19 +917,57 @@ export default function App() {
               }
             }
 
-            // Normal local fallback
-            setCurrentUser({
+            // For normal users in offline fallback check local storage registry
+            const localUsersStr = localStorage.getItem('boutique_users') || '{}';
+            let localUsers: Record<string, any> = {};
+            try {
+              localUsers = JSON.parse(localUsersStr);
+            } catch (err) {}
+
+            if (localUsers[trimmedEmail]) {
+              const matchedLocal = localUsers[trimmedEmail];
+              if (isSignUp) {
+                throw new Error('This boutique profile is already registered. Please login.');
+              }
+              if (password && matchedLocal.password !== password) {
+                throw new Error('Incorrect credentials entered for offline profile.');
+              }
+              const loggedInUser: UserProfile = {
+                email: matchedLocal.email,
+                fullName: matchedLocal.fullName,
+                isLoggedIn: true,
+                memberTier: matchedLocal.memberTier || 'Loyal Collector',
+                loyaltyPoints: matchedLocal.loyaltyPoints || 15,
+              };
+              setCurrentUser(loggedInUser);
+              triggerNotification(`Welcome back, ${loggedInUser.fullName}! (Offline Session synced)`);
+              return;
+            }
+
+            if (!isSignUp) {
+              throw new Error('Profile not found in local boutique registry. Please sign up (SHING UP) first.');
+            }
+
+            // Save new local fallback user registry
+            const newProfile: UserProfile = {
               email: trimmedEmail,
               fullName: fullName || 'Vanguard Collector',
               isLoggedIn: true,
               memberTier: 'Loyal Collector',
               loyaltyPoints: 15,
-            });
-            try {
-              handleFirestoreError(e, OperationType.GET, `users/${trimmedEmail}`);
-            } catch (err) {
-              console.warn("Continuing with local user fallback profile.");
-            }
+            };
+
+            localUsers[trimmedEmail] = {
+              email: trimmedEmail,
+              fullName: fullName || 'Vanguard Collector',
+              password: password || '',
+              memberTier: 'Loyal Collector',
+              loyaltyPoints: 15,
+            };
+            localStorage.setItem('boutique_users', JSON.stringify(localUsers));
+
+            setCurrentUser(newProfile);
+            triggerNotification('Offline Sign Up Completed!');
           }
         }}
         onLogout={() => {

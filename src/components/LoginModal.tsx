@@ -8,7 +8,7 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserProfile | null;
-  onLogin: (email: string, fullName: string, password?: string) => Promise<void>;
+  onLogin: (email: string, fullName: string, password?: string, isSignUp?: boolean) => Promise<void>;
   onLogout: () => void;
   orders: CompactOrder[];
   onUpdateOrderStatus?: (orderId: string, status: CompactOrder['status']) => void;
@@ -47,7 +47,7 @@ export default function LoginModal({
 
     try {
       const nameToUse = isRegistering ? fullName || 'Vanguard Collector' : fullName || 'Alexandre Horologue';
-      await onLogin(email, nameToUse, password);
+      await onLogin(email, nameToUse, password, isRegistering);
       setEmail('');
       setPassword('');
       setFullName('');
