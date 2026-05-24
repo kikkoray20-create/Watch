@@ -180,9 +180,33 @@ export default function App() {
       }
     };
 
+    // 3. Seed Master Admin credential profile in Firestore
+    const seedAdminUser = async () => {
+      try {
+        const docRef = doc(db, 'users', '7737421738');
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+          const adminProfile: any = {
+            email: '7737421738',
+            fullName: 'Master Horologist',
+            isLoggedIn: false,
+            memberTier: 'Master Horologist',
+            loyaltyPoints: 9999,
+            isAdmin: true,
+            password: '123'
+          };
+          await setDoc(docRef, adminProfile);
+          console.log('[Firebase Seeder] Master user profile created in Firestore.');
+        }
+      } catch (err) {
+        console.warn('Skipped admin seeding (local mode fallback or auth restricted).', err);
+      }
+    };
+
     if (!configDiagnostics.isUsingFallback) {
       loadBoutiqueSettings();
       loadCatalog();
+      seedAdminUser();
     } else {
       setFirebaseConnected(false);
     }
@@ -775,39 +799,63 @@ export default function App() {
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
         user={currentUser}
-        onLogin={async (email, fullName) => {
-          const isAdmin = email.trim() === '7737421738';
-          
-          if (isAdmin) {
-            const adminUser: UserProfile = {
-              email,
-              fullName: 'Master Horologist',
-              isLoggedIn: true,
-              memberTier: 'Master Horologist',
-              loyaltyPoints: 9999,
-              isAdmin: true,
-            };
-            setCurrentUser(adminUser);
-            setIsAdminDashboardActive(true); // Automatically switch onto the administrative console!
-            triggerNotification(`Authorized Admin Session. Master Dashboard loaded.`);
-            return;
-          }
+        onLogin={async (email, fullName, password) => {
+          const trimmedEmail = email.trim();
+          const userIdKey = trimmedEmail.replace(/[.@]/g, '_');
 
-          // Fetch or initialize persistent user session from Firestore
-          const userIdKey = email.replace(/[.@]/g, '_');
           try {
             const docRef = doc(db, 'users', userIdKey);
             const docSnap = await getDoc(docRef);
+
             if (docSnap.exists()) {
-              const loadedProfile = docSnap.data() as UserProfile;
-              setCurrentUser({
-                ...loadedProfile,
+              const loadedProfile = docSnap.data() as UserProfile & { password?: string };
+              
+              if (loadedProfile.password !== undefined) {
+                if (password !== loadedProfile.password) {
+                  throw new Error('Incorrect credentials entered for Master Portal.');
+                }
+              }
+
+              const loggedInUser: UserProfile = {
+                email: loadedProfile.email,
+                fullName: loadedProfile.fullName,
                 isLoggedIn: true,
-              });
-              triggerNotification(`Welcome back, ${loadedProfile.fullName || fullName}! Session synced with Firestore.`);
+                memberTier: loadedProfile.memberTier,
+                loyaltyPoints: loadedProfile.loyaltyPoints,
+                isAdmin: !!loadedProfile.isAdmin,
+              };
+
+              setCurrentUser(loggedInUser);
+              if (loggedInUser.isAdmin) {
+                setIsAdminDashboardActive(true);
+                triggerNotification(`Authorized Admin Session. Master Dashboard loaded.`);
+              } else {
+                triggerNotification(`Welcome back, ${loggedInUser.fullName}! Session synced with Firestore.`);
+              }
             } else {
+              // Special handling for the Master admin user if database is completely empty / not seeded
+              if (trimmedEmail === '7737421738') {
+                if (password === '123') {
+                  const adminUser: UserProfile = {
+                    email: trimmedEmail,
+                    fullName: 'Master Horologist',
+                    isLoggedIn: true,
+                    memberTier: 'Master Horologist',
+                    loyaltyPoints: 9999,
+                    isAdmin: true,
+                  };
+                  setCurrentUser(adminUser);
+                  setIsAdminDashboardActive(true);
+                  triggerNotification(`Authorized Admin Session (Local Master Portal).`);
+                  return;
+                } else {
+                  throw new Error('Incorrect credentials entered for Master Portal.');
+                }
+              }
+
+              // Normal register flow
               const newProfile: UserProfile = {
-                email,
+                email: trimmedEmail,
                 fullName: fullName || 'Vanguard Collector',
                 isLoggedIn: true,
                 memberTier: 'Loyal Collector',
@@ -817,19 +865,39 @@ export default function App() {
               setCurrentUser(newProfile);
               triggerNotification(`Enrolled successfully! Profile initialized in Firestore.`);
             }
-          } catch (e) {
-            // Register local fallback login first so the user does not get locked out
+          } catch (e: any) {
+            // Local fallback login checks when Firebase configuration is offline
+            if (trimmedEmail === '7737421738') {
+              if (password === '123') {
+                const adminUser: UserProfile = {
+                  email: trimmedEmail,
+                  fullName: 'Master Horologist',
+                  isLoggedIn: true,
+                  memberTier: 'Master Horologist',
+                  loyaltyPoints: 9999,
+                  isAdmin: true,
+                };
+                setCurrentUser(adminUser);
+                setIsAdminDashboardActive(true);
+                triggerNotification(`Authorized Local Admin Session.`);
+                return;
+              } else {
+                throw new Error('Incorrect credentials entered for Master Portal.');
+              }
+            }
+
+            // Normal local fallback
             setCurrentUser({
-              email,
+              email: trimmedEmail,
               fullName: fullName || 'Vanguard Collector',
               isLoggedIn: true,
               memberTier: 'Loyal Collector',
               loyaltyPoints: 15,
             });
             try {
-              handleFirestoreError(e, OperationType.GET, `users/${email}`);
+              handleFirestoreError(e, OperationType.GET, `users/${trimmedEmail}`);
             } catch (err) {
-              console.warn("Continuing with local user fallback profile (Firebase offline).");
+              console.warn("Continuing with local user fallback profile.");
             }
           }
         }}

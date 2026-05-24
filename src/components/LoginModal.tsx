@@ -8,7 +8,7 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserProfile | null;
-  onLogin: (email: string, fullName: string) => void;
+  onLogin: (email: string, fullName: string, password?: string) => Promise<void>;
   onLogout: () => void;
   orders: CompactOrder[];
   onUpdateOrderStatus?: (orderId: string, status: CompactOrder['status']) => void;
@@ -37,32 +37,25 @@ export default function LoginModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
     setIsSubmitting(true);
     setErrorMsg('');
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      
-      // Admin Credential Check
-      if (email.trim() === '7737421738' && password.trim() === '123') {
-        onLogin('7737421738', 'Master Horologist');
-        setEmail('');
-        setPassword('');
-        setFullName('');
-        onClose();
-        return;
-      }
-
+    try {
       const nameToUse = isRegistering ? fullName || 'Vanguard Collector' : fullName || 'Alexandre Horologue';
-      onLogin(email, nameToUse);
+      await onLogin(email, nameToUse, password);
       setEmail('');
       setPassword('');
       setFullName('');
-    }, 1200);
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAutocompleteDemo = () => {
@@ -367,6 +360,12 @@ export default function LoginModal({
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-3.5">
+                  {errorMsg && (
+                    <div className="bg-red-950/40 border border-red-500/20 text-red-200 p-2.5 rounded-lg text-xs font-mono text-center">
+                      ⚠️ {errorMsg}
+                    </div>
+                  )}
+
                   {isRegistering && (
                     <div>
                       <label className="text-[10px] font-mono uppercase text-stone-450 block mb-1">Full Representative Name</label>

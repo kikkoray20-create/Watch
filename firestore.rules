@@ -43,8 +43,8 @@ service cloud.firestore {
 
     // Users Profiles
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId) || isAdmin();
+      allow get, create: if true;
+      allow update, delete: if isAdmin() || isOwner(userId);
     }
 
     // Orders Collection
