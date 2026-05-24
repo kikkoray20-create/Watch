@@ -28,6 +28,7 @@ interface MasterDashboardProps {
   onUpdateCatalog: (newCatalog: WatchModel[]) => void;
   orders: CompactOrder[];
   onUpdateOrderStatus: (orderId: string, status: CompactOrder['status']) => void;
+  onRemoveOrder: (orderId: string) => void;
   onAddOrderSimulation: () => void;
   onClearOrders: () => void;
   settings: BoutiqueSettings;
@@ -41,6 +42,7 @@ export default function MasterDashboard({
   onUpdateCatalog,
   orders,
   onUpdateOrderStatus,
+  onRemoveOrder,
   onAddOrderSimulation,
   onClearOrders,
   settings,
@@ -48,7 +50,7 @@ export default function MasterDashboard({
   onRestoreOriginals,
   onClose,
 }: MasterDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customizer' | 'bulkuploader'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customizer'>('catalog');
   
   // Custom timepiece state
   const [isAddingWatch, setIsAddingWatch] = useState(false);
@@ -356,32 +358,7 @@ export default function MasterDashboard({
             <Sliders className="h-3.5 w-3.5" />
             <span>Customize Storefront Sites</span>
           </button>
-
-          <button
-            onClick={() => { setActiveTab('bulkuploader'); setUploadError(''); }}
-            className={`px-4 py-2.5 text-xs font-mono tracking-wider transition-all flex items-center space-x-1.5 border-b-2 cursor-pointer ${
-              activeTab === 'bulkuploader'
-                ? 'border-amber-500 text-amber-500 font-bold bg-[#121212]'
-                : 'border-transparent text-stone-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Upload className="h-3.5 w-3.5" />
-            <span>Bulk Upload Catalog</span>
-          </button>
         </div>
-
-        {/* Global actions */}
-        <button
-          onClick={() => {
-            if (confirm('Restore the original curated watch collection catalog? This will overwrite existing manual items.')) {
-              onRestoreOriginals();
-            }
-          }}
-          className="text-[10px] bg-white/5 text-stone-400 border border-white/5 px-3 py-1.5 rounded hover:bg-white/10 hover:text-white hover:border-white/10 transition-colors font-mono tracking-widest uppercase flex items-center space-x-1 cursor-pointer"
-        >
-          <RotateCcw className="h-3 w-3" />
-          <span>Reset Demo Defaults</span>
-        </button>
       </div>
 
       {/* Main Container Content */}
@@ -758,6 +735,17 @@ export default function MasterDashboard({
                           ₹{order.total.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                         </span>
                       </div>
+
+                      <div className="text-left sm:text-right">
+                        <span className="text-[9px] text-rose-500 uppercase font-bold tracking-wider block">MANAGEMENT ACTION</span>
+                        <button
+                          onClick={() => onRemoveOrder(order.id)}
+                          className="mt-1 bg-rose-950/20 border border-rose-900/40 text-rose-400 hover:bg-rose-900 hover:text-white hover:border-rose-900 text-[10.5px] font-mono font-bold tracking-widest px-2.5 py-1 rounded uppercase cursor-pointer transition-colors flex items-center space-x-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          <span>Remove Order</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-1">
@@ -955,79 +943,6 @@ export default function MasterDashboard({
               <p className="text-stone-300">
                 ⚡ Real-time web cache synchronization enabled. All configuration options undergo fast local hot reload compilation automatically.
               </p>
-            </div>
-
-          </div>
-        )}
-
-        {/* TAB 4: BULK CATALOG UPLAODER JSON */}
-        {activeTab === 'bulkuploader' && (
-          <div className="space-y-6">
-            
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="text-sm font-mono tracking-widest text-[#999999] uppercase select-none font-bold">
-                  JSON Multi-node Batch Catalog Uploader
-                </h3>
-                <p className="text-[11px] text-stone-450 mt-0.5">
-                  Overhaul the full storefront catalog by pasting a complete JSON list of watch objects below.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleLoadCurrentJSON}
-                className="bg-white/5 border border-white/10 text-stone-300 hover:text-white hover:bg-[#121212] text-xs font-mono px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer"
-              >
-                <FileText className="h-3.5 w-3.5 text-amber-550" />
-                <span>Load Active Catalog JSON</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleBulkUploadSubmit} className="space-y-4 text-left">
-              <div>
-                <label className="text-[10px] font-mono text-stone-400 uppercase block mb-1">
-                  Catalog Array Document Syntax (JSON format)
-                </label>
-                <textarea
-                  rows={10}
-                  required
-                  value={jsonPaste}
-                  onChange={(e) => setJsonPaste(e.target.value)}
-                  placeholder="[&#10;  {&#10;    &quot;id&quot;: &quot;custom-premium&quot;,&#10;    &quot;name&quot;: &quot;Sovereign Classic Calibre&quot;,&#10;    &quot;brand&quot;: &quot;Chronos&quot;,&#10;    &quot;price&quot;: 340000.00,&#10;    &quot;category&quot;: &quot;prestige&quot;,&#10;    &quot;imageUrl&quot;: &quot;https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&amp;fit=crop&amp;w=600&quot;,&#10;    &quot;description&quot;: &quot;A lovely handcrafted moonphase classic timepiece.&quot;,&#10;    &quot;specs&quot;: {&#10;      &quot;caseSize&quot;: &quot;41mm&quot;,&#10;      &quot;waterResistance&quot;: &quot;100m&quot;,&#10;      &quot;crystal&quot;: &quot;Sapphire&quot;,&#10;      &quot;movement&quot;: &quot;Automatic Calibre&quot;&#10;    },&#10;    &quot;stock&quot;: 5,&#10;    &quot;rating&quot;: 4.9&#10;  }&#10;]"
-                  className="w-full p-4 bg-black border border-white/10 rounded-2xl text-[10px] font-mono text-stone-300 focus:outline-none focus:ring-1 focus:ring-amber-500 leading-normal"
-                />
-              </div>
-
-              {uploadError && (
-                <div className="p-3 bg-rose-950/25 border border-rose-900/30 text-rose-400 text-xs rounded-xl flex items-center space-x-2 animate-pulse font-mono">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              {uploadSuccess && (
-                <div className="p-3 bg-emerald-950/25 border border-emerald-900/30 text-emerald-400 text-xs rounded-xl flex items-center space-x-2 font-mono">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>✓ Success! Curated timepiece catalogue written and deployed over client views!</span>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-white hover:bg-amber-500 text-black font-bold text-xs rounded-xl font-mono uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  ⚡ Execute Upload & Overwrite Catalog
-                </button>
-              </div>
-            </form>
-
-            <div className="bg-[#121212]/40 border border-white/5 p-4 rounded-xl space-y-2 text-stone-400 text-[10px] font-mono leading-relaxed">
-              <span className="text-white block font-semibold mb-1 uppercase tracking-widest text-[9px]">REQUIRED FIELD CONVENTIONS:</span>
-              <p>1. Must contain a root array `[ ... ]` representing the timepiece catalog catalog.</p>
-              <p>2. Each object node needs at least: `id` (slug), `name`, `brand`, `price` (number), and `category` (one of: `'sports' | 'classic' | 'minimalist' | 'prestige'`).</p>
-              <p>3. Spec components are nested inside `specs` block (with `caseSize`, `waterResistance`, `crystal`, and `movement`). Will auto-generate values if omitted.</p>
             </div>
 
           </div>

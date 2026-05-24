@@ -486,6 +486,19 @@ export default function App() {
     }
   };
 
+  const handleRemoveOrder = async (orderId: string) => {
+    if (confirm(`Are you sure you want to remove order ${orderId}?`)) {
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      try {
+        await deleteDoc(doc(db, 'orders', orderId));
+        triggerNotification(`Order ${orderId} removed from Cloud Database.`);
+      } catch (e) {
+        handleFirestoreError(e, OperationType.DELETE, `orders/${orderId}`);
+        triggerNotification(`Order ${orderId} removed from local session.`);
+      }
+    }
+  };
+
   const handleAddOrderSimulation = async () => {
     const rId = Math.floor(1000 + Math.random() * 9000);
     const rItem = catalog[Math.floor(Math.random() * catalog.length)] || products[0];
@@ -637,6 +650,7 @@ export default function App() {
             onUpdateCatalog={handleUpdateCatalog}
             orders={orders}
             onUpdateOrderStatus={handleUpdateOrderStatus}
+            onRemoveOrder={handleRemoveOrder}
             onAddOrderSimulation={handleAddOrderSimulation}
             onClearOrders={handleClearOrders}
             settings={boutiqueSettings}
