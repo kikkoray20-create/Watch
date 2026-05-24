@@ -31,6 +31,7 @@ export default function WatchPage({
 }: WatchPageProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'specs' | 'reviews'>('details');
   const [isLiked, setIsLiked] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   // Local state for user reviews submissions
   const [reviews, setReviews] = useState<UserReview[]>(() => {
@@ -148,17 +149,38 @@ export default function WatchPage({
             </button>
 
             {/* Watch Primary Visualization Portrait */}
-            <div className="relative transform group-hover:scale-105 transition-transform duration-700 ease-out py-6">
-              <img
-                src={watch.imageUrl}
-                alt={watch.name}
-                referrerPolicy="no-referrer"
-                className="max-h-[360px] sm:max-h-[440px] w-auto object-contain filter drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]"
-              />
+            <div className="relative flex flex-col items-center justify-center py-6 min-h-[440px]">
+              <div className="transform group-hover:scale-105 transition-transform duration-700 ease-out py-4">
+                <img
+                  src={(watch.images && watch.images[selectedImageIndex]) || watch.imageUrl}
+                  alt={watch.name}
+                  referrerPolicy="no-referrer"
+                  className="max-h-[320px] sm:max-h-[380px] w-auto object-contain filter drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]"
+                />
+              </div>
+
+              {/* Multi-photo paginator bar */}
+              {watch.images && watch.images.length > 1 && (
+                <div className="flex justify-center flex-wrap gap-2 mt-4 z-10">
+                  {watch.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className={`h-11 w-11 rounded-lg overflow-hidden border transition-all cursor-pointer ${
+                        selectedImageIndex === idx
+                          ? 'border-amber-500 bg-amber-500/5 ring-1 ring-amber-500'
+                          : 'border-white/10 bg-black/40 hover:border-white/20'
+                      }`}
+                    >
+                      <img src={img} alt={`Angle ${idx + 1}`} className="h-full w-full object-contain p-0.5" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Studio validation annotation */}
-            <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-mono tracking-widest text-stone-500 uppercase whitespace-nowrap">
+            <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-mono tracking-widest text-stone-500 uppercase whitespace-nowrap select-none">
               • High Definition Studio Master Render •
             </p>
           </div>

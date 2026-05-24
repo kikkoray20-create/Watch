@@ -11,8 +11,11 @@ interface WatchModalProps {
 export default function WatchModal({ watch, onClose, onAddToCart }: WatchModalProps) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'shopify'>('desc');
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   if (!watch) return null;
+
+  const imagesToDisplay = watch.images && watch.images.length > 0 ? watch.images : [watch.imageUrl];
 
   // Render a sample simulated GraphQL query showing Shopify Storefront API representation
   const graphQLPayload = `query getProductById {
@@ -67,17 +70,40 @@ export default function WatchModal({ watch, onClose, onAddToCart }: WatchModalPr
           <div className="grid grid-cols-1 md:grid-cols-2">
             
             {/* Left Product Visual Showcase */}
-            <div className="bg-[#121212] p-8 flex flex-col items-center justify-center border-r border-white/5 relative">
+            <div className="bg-[#121212] p-8 flex flex-col items-center justify-between border-r border-[#1a1a1a] relative min-h-[460px]">
               <span className="absolute top-6 left-6 text-[10px] font-mono tracking-widest text-stone-500 uppercase">
                 Collection {watch.category[0].toUpperCase() + watch.category.slice(1)}
               </span>
-              <img 
-                src={watch.imageUrl} 
-                alt={watch.name} 
-                referrerPolicy="no-referrer"
-                className="max-h-[340px] w-auto object-contain p-4"
-              />
-              <p className="text-[10px] font-mono text-center text-stone-500/95 mt-4">
+              
+              <div className="flex-1 flex items-center justify-center py-6">
+                <img 
+                  src={imagesToDisplay[selectedImageIndex] || watch.imageUrl} 
+                  alt={watch.name} 
+                  referrerPolicy="no-referrer"
+                  className="max-h-[280px] w-auto object-contain p-2 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] transition-all duration-300"
+                />
+              </div>
+
+              {/* Multi-photo paginator bar */}
+              {imagesToDisplay.length > 1 && (
+                <div className="flex justify-center flex-wrap gap-2 mb-4">
+                  {imagesToDisplay.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className={`h-11 w-11 rounded-lg overflow-hidden border transition-all cursor-pointer ${
+                        selectedImageIndex === idx
+                          ? 'border-amber-500 bg-amber-500/5 ring-1 ring-amber-500'
+                          : 'border-white/10 bg-black/40 hover:border-white/20'
+                      }`}
+                    >
+                      <img src={img} alt={`Angle ${idx + 1}`} className="h-full w-full object-contain p-0.5" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-[10px] font-mono text-center text-stone-500/95">
                 • Photographed under pristine studio professional lighting •
               </p>
             </div>

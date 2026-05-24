@@ -61,6 +61,8 @@ export default function MasterDashboard({
   const [watchPrice, setWatchPrice] = useState(150000);
   const [watchCategory, setWatchCategory] = useState<WatchModel['category']>('sports');
   const [watchImgUrl, setWatchImgUrl] = useState('');
+  const [watchPhotos, setWatchPhotos] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [watchDesc, setWatchDesc] = useState('');
   const [caseSize, setCaseSize] = useState('42mm Titanium');
   const [waterRes, setWaterRes] = useState('100m / 330ft');
@@ -68,6 +70,53 @@ export default function MasterDashboard({
   const [movement, setMovement] = useState('Automatic Movement');
   const [watchStock, setWatchStock] = useState(10);
   const [watchRating, setWatchRating] = useState(4.8);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files) as File[];
+    
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setWatchPhotos((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!e.dataTransfer.files) return;
+    const files = Array.from(e.dataTransfer.files) as File[];
+    
+    files.forEach((file) => {
+      if (file.type && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            setWatchPhotos((prev) => [...prev, reader.result as string]);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  const handleRemovePhoto = (indexToRemove: number) => {
+    setWatchPhotos((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
 
   // Bulk Upload state
   const [jsonPaste, setJsonPaste] = useState('');
@@ -88,6 +137,7 @@ export default function MasterDashboard({
     setWatchPrice(watch.price);
     setWatchCategory(watch.category);
     setWatchImgUrl(watch.imageUrl);
+    setWatchPhotos(watch.images || (watch.imageUrl ? [watch.imageUrl] : []));
     setWatchDesc(watch.description);
     setCaseSize(watch.specs.caseSize);
     setWaterRes(watch.specs.waterResistance);
@@ -107,6 +157,7 @@ export default function MasterDashboard({
     setWatchPrice(150000);
     setWatchCategory('sports');
     setWatchImgUrl('');
+    setWatchPhotos([]);
     setWatchDesc('');
     setCaseSize('42mm Titanium');
     setWaterRes('100m / 330ft');
@@ -124,13 +175,15 @@ export default function MasterDashboard({
       return;
     }
 
+    const defaultImg = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=400';
     const newWatch: WatchModel = {
       id: watchId.trim().toLowerCase().replace(/\s+/g, '-'),
       name: watchName,
       brand: watchBrand,
       price: Number(watchPrice),
       category: watchCategory,
-      imageUrl: watchImgUrl.trim() || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=400',
+      imageUrl: watchPhotos[0] || watchImgUrl.trim() || defaultImg,
+      images: watchPhotos.length > 0 ? watchPhotos : [watchImgUrl.trim() || defaultImg],
       description: watchDesc || 'Custom luxury timepiece curated by boutique administrators.',
       specs: {
         caseSize,
@@ -438,15 +491,60 @@ export default function MasterDashboard({
                     />
                   </div>
 
-                  <div>
-                    <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block mb-1">High-Res Watch Image URL</label>
-                    <input
-                      type="text"
-                      value={watchImgUrl}
-                      onChange={(e) => setWatchImgUrl(e.target.value)}
-                      placeholder="https://images.unsplash.com/... or keep blank for default"
-                      className="w-full px-3.5 py-2.5 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
-                    />
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block mb-1">
+                      Upload Catalog Photos <span className="text-amber-500 font-bold">*</span>
+                    </label>
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className={`relative border-2 border-dashed rounded-xl p-4 transition-all duration-300 flex flex-col items-center justify-center text-center cursor-pointer min-h-[110px] ${
+                        isDragging
+                          ? 'border-amber-500 bg-amber-500/10'
+                          : 'border-white/10 hover:border-white/20 bg-[#121212]'
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                      <Upload className="h-6 w-6 text-stone-400 mb-2" />
+                      <span className="text-[11px] text-stone-300 font-medium select-none">
+                        Drag & drop multiple photos here, or click to choose
+                      </span>
+                      <span className="text-[9px] text-[#888888] select-none mt-1">
+                        Any photo uploaded updates the catalog item in real-time
+                      </span>
+                    </div>
+
+                    {/* Previews wrapper */}
+                    {watchPhotos.length > 0 && (
+                      <div className="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2 bg-black/40 p-2.5 rounded-lg border border-white/5">
+                        {watchPhotos.map((photo, idx) => (
+                          <div key={idx} className="relative group aspect-square rounded-md overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+                            <img
+                              src={photo}
+                              alt="Catalog source"
+                              className="max-h-full max-w-full object-contain p-1"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePhoto(idx)}
+                              className="absolute top-1 right-1 h-3.5 w-3.5 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-[8px] font-bold shadow-md transition-opacity"
+                            >
+                              ✕
+                            </button>
+                            <span className="absolute bottom-0.5 left-0.5 bg-black/75 px-1 py-0.5 rounded text-[8px] font-mono text-amber-500 font-semibold shadow">
+                              #{idx + 1}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block mb-1">Initial Stars Score Rating (max 5.0)</label>

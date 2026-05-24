@@ -5,6 +5,7 @@ export interface WatchModel {
   price: number;
   category: 'sports' | 'classic' | 'minimalist' | 'prestige';
   imageUrl: string;
+  images?: string[];
   description: string;
   specs: {
     caseSize: string;
