@@ -235,16 +235,6 @@ export default function MasterDashboard({
             <span>Boutique Horology Master Dashboard</span>
           </h2>
         </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="bg-white hover:bg-amber-500 text-black px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-colors flex items-center space-x-1.5 cursor-pointer"
-          >
-            <span>Exit Controls</span>
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
       </div>
 
       {/* Grid Stats Highlights Bar */}

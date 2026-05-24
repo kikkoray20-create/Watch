@@ -14,6 +14,7 @@ interface HeaderProps {
   user: UserProfile | null;
   onLoginClick: () => void;
   storeName?: string;
+  hideCategoryShelf?: boolean;
 }
 
 export default function Header({
@@ -27,6 +28,7 @@ export default function Header({
   user,
   onLoginClick,
   storeName = 'CHRONOS',
+  hideCategoryShelf = false,
 }: HeaderProps) {
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -176,22 +178,24 @@ export default function Header({
         </AnimatePresence>
 
         {/* Category Shelf - Extremely Mobile Friendly Horizontal Scroll bar */}
-        <div className="pb-4 pt-1 flex items-center overflow-x-auto scrollbar-none gap-2 font-mono text-[10px] sm:text-xs">
-          <span className="text-stone-500 uppercase tracking-wider pr-1 hidden sm:inline select-none">Collections:</span>
-          {['all', 'sports', 'classic', 'minimalist', 'prestige'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full whitespace-nowrap border capitalize transition-all cursor-pointer ${
-                selectedCategory === cat
-                  ? 'bg-amber-500 border-amber-500 text-black font-semibold'
-                  : 'bg-white/5 border-white/10 text-stone-350 hover:text-white hover:bg-white/8'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {!hideCategoryShelf && (
+          <div className="pb-4 pt-1 flex items-center overflow-x-auto scrollbar-none gap-2 font-mono text-[10px] sm:text-xs">
+            <span className="text-stone-500 uppercase tracking-wider pr-1 hidden sm:inline select-none">Collections:</span>
+            {['all', 'sports', 'classic', 'minimalist', 'prestige'].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3.5 py-1.5 rounded-full whitespace-nowrap border capitalize transition-all cursor-pointer ${
+                  selectedCategory === cat
+                    ? 'bg-amber-500 border-amber-500 text-black font-semibold'
+                    : 'bg-white/5 border-white/10 text-stone-350 hover:text-white hover:bg-white/8'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
 
       </div>
     </header>

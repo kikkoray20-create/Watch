@@ -537,7 +537,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col justify-between bg-[#050505] text-[#e0e0e0]" id="app-root-container">
       
       {/* Admin Floating Banner for Coordinators to switch views */}
-      {currentUser?.isAdmin && (
+      {currentUser?.isAdmin && !isAdminDashboardActive && (
         <div className="bg-gradient-to-r from-amber-600 to-amber-500 py-3.5 px-6 text-[#080808] font-mono text-xs select-none sticky top-0 z-50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl font-bold">
           <div className="flex items-center space-x-2.5">
             <span className="h-2.5 w-2.5 rounded-full bg-black animate-ping shrink-0"></span>
@@ -578,6 +578,7 @@ export default function App() {
         user={currentUser}
         onLoginClick={() => setIsLoginOpen(true)}
         storeName={boutiqueSettings.storeName}
+        hideCategoryShelf={isAdminDashboardActive}
       />
 
       {/* Floating alert notifications */}
