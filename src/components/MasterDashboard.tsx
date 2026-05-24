@@ -6,7 +6,7 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  Upload, 
+  Upload,  
   RotateCcw, 
   DollarSign, 
   Package, 
