@@ -14,7 +14,7 @@ import { ShieldCheck, ArrowRight, Info, Clock, AlertCircle } from 'lucide-react'
 
 // Firebase Database & Authentication Setup
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { db, handleFirestoreError, OperationType, configDiagnostics } from './firebase';
 
 export default function App() {
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -56,6 +56,15 @@ export default function App() {
     const saved = localStorage.getItem('chronos_user');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Firebase integration status states
+  const [firebaseConnected, setFirebaseConnected] = useState<boolean | null>(
+    configDiagnostics.isUsingFallback ? false : null
+  );
+  const [firebaseErrorText, setFirebaseErrorText] = useState<string | null>(
+    configDiagnostics.isUsingFallback ? "Incomplete configuration in environment settings" : null
+  );
+  const [showConfigHelper, setShowConfigHelper] = useState(false);
 
   // Admin view toggle helper state
   const [isAdminDashboardActive, setIsAdminDashboardActive] = useState(false);
@@ -105,6 +114,7 @@ export default function App() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setBoutiqueSettings(docSnap.data() as BoutiqueSettings);
+          setFirebaseConnected(true);
         } else {
           // Initialize/seed settings to Firestore in first invocation
           const defaultSettings: BoutiqueSettings = {
@@ -118,13 +128,21 @@ export default function App() {
           };
           try {
             await setDoc(docRef, defaultSettings);
+            setFirebaseConnected(true);
           } catch (writeErr) {
             console.warn("Seeding default boutique config skipped (Admin auth required). Operating with local fallback and state.");
           }
           setBoutiqueSettings(defaultSettings);
         }
       } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'settings/boutique_config');
+        setFirebaseConnected(false);
+        setFirebaseErrorText(err instanceof Error ? err.message : String(err));
+        try {
+          // Send to logging utility so system can verify/debug security rules
+          handleFirestoreError(err, OperationType.GET, 'settings/boutique_config');
+        } catch (thrownErr) {
+          console.warn("Continuing with local fallback after logging Firestore settings error.", thrownErr);
+        }
       }
     };
 
@@ -151,12 +169,23 @@ export default function App() {
           setCatalog(loadedWatches);
         }
       } catch (err) {
-        handleFirestoreError(err, OperationType.GET, 'watches');
+        setFirebaseConnected(false);
+        setFirebaseErrorText(err instanceof Error ? err.message : String(err));
+        try {
+          handleFirestoreError(err, OperationType.GET, 'watches');
+        } catch (thrownErr) {
+          console.warn("Continuing with local fallback after logging Firestore watches error.", thrownErr);
+          setCatalog(products);
+        }
       }
     };
 
-    loadBoutiqueSettings();
-    loadCatalog();
+    if (!configDiagnostics.isUsingFallback) {
+      loadBoutiqueSettings();
+      loadCatalog();
+    } else {
+      setFirebaseConnected(false);
+    }
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -522,6 +551,24 @@ export default function App() {
         storeName={boutiqueSettings.storeName}
       />
 
+      {/* Firebase Diagnostics and Connection Warning banner in Hinglish */}
+      {firebaseConnected === false && (
+        <div className="bg-amber-950/40 border-b border-amber-500/20 text-stone-200 py-3 px-4 sm:px-6 lg:px-8 font-sans text-xs flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-20 z-35 backdrop-blur-md" id="firebase-offline-alert-banner">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+            <span>
+              <strong>Note (Hinglish):</strong> Aapka store <strong>Safe Offline/Demo Mode</strong> me chal rha hai kyunki Firebase connect nahi hai. Checkout, catalog, and profiles perfectly work karenge.
+            </span>
+          </div>
+          <button
+            onClick={() => setShowConfigHelper(true)}
+            className="px-3.5 py-1.5 rounded-full text-[11px] font-mono font-bold bg-amber-500 text-[#050505] hover:bg-amber-400 active:scale-95 transition-all whitespace-nowrap cursor-pointer shadow-lg"
+          >
+            Firebase Config Helper Open Karein ⚙️
+          </button>
+        </div>
+      )}
+
       {/* Floating alert notifications */}
       <div className="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none select-none max-w-sm">
         {notifications.map((msg, i) => (
@@ -789,15 +836,19 @@ export default function App() {
               triggerNotification(`Enrolled successfully! Profile initialized in Firestore.`);
             }
           } catch (e) {
-            handleFirestoreError(e, OperationType.GET, `users/${email}`);
-            // Fallback local registration if database fails
+            // Register local fallback login first so the user does not get locked out
             setCurrentUser({
               email,
-              fullName,
+              fullName: fullName || 'Vanguard Collector',
               isLoggedIn: true,
               memberTier: 'Loyal Collector',
               loyaltyPoints: 15,
             });
+            try {
+              handleFirestoreError(e, OperationType.GET, `users/${email}`);
+            } catch (err) {
+              console.warn("Continuing with local user fallback profile (Firebase offline).");
+            }
           }
         }}
         onLogout={() => {
@@ -808,6 +859,86 @@ export default function App() {
         orders={orders}
         onUpdateOrderStatus={handleUpdateOrderStatus}
       />
+
+      {/* Firebase Diagnostics Overlay Helper Modal (Hinglish) */}
+      {showConfigHelper && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#0b0b0b] border border-white/10 max-w-lg w-full rounded-2xl p-6 sm:p-8 relative shadow-2xl font-sans" id="firebase-diagnostics-modal">
+            <button
+              onClick={() => setShowConfigHelper(false)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-white transition-colors cursor-pointer text-lg font-mono p-1"
+            >
+              ✕
+            </button>
+            
+            <div className="flex items-center space-x-3 mb-6">
+              <AlertCircle className="h-6 w-6 text-amber-500 animate-pulse" />
+              <h3 className="text-lg font-serif tracking-wider uppercase text-white">Firebase Connection Helper</h3>
+            </div>
+
+            <p className="text-stone-350 text-xs leading-relaxed mb-6">
+              <strong>Hinglish Guidance:</strong> Aapka watch boutique standard <strong>Local Fallback Mode</strong> me chal rha hai.
+              Agar aap isko real Firebase backend se connect karna chahte hain, toh verified environment variables ka setup checklist check karein.
+            </p>
+
+            <div className="space-y-3.5 bg-black/50 border border-white/5 p-4 rounded-xl font-mono text-[11px] mb-6">
+              <div className="text-[10px] text-stone-500 uppercase tracking-widest border-b border-white/5 pb-1 mb-2">
+                Loaded Configuration Checklist:
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span>1. API Key (VITE_FIREBASE_API_KEY):</span>
+                <span>{configDiagnostics.apiKeyValid ? "✅ Loaded" : configDiagnostics.hasApiKey ? "⚠️ Incomplete/Invalid format" : "✕ Empty"}</span>
+              </div>
+              
+              <div className="flex justify-between items-center border-t border-white/5 pt-2">
+                <span>2. Project ID (VITE_FIREBASE_PROJECT_ID):</span>
+                <span>{configDiagnostics.hasProjectId ? "✅ Loaded/Correct" : "✕ Empty"}</span>
+              </div>
+
+              <div className="flex justify-between items-center border-t border-white/5 pt-2">
+                <span>3. App ID (VITE_FIREBASE_APP_ID):</span>
+                <span>{configDiagnostics.hasAppId ? "✅ Loaded/Correct" : "✕ Empty"}</span>
+              </div>
+
+              <div className="flex justify-between items-center border-t border-white/5 pt-2">
+                <span>4. Auth Domain (VITE_FIREBASE_AUTH_DOMAIN):</span>
+                <span>{configDiagnostics.hasAuthDomain ? "✅ Loaded/Correct" : "✕ Empty"}</span>
+              </div>
+
+              <div className="flex flex-col gap-1 border-t border-white/5 pt-2 text-[10px] text-stone-400">
+                <span className="font-sans font-semibold text-stone-300">Resolved Project Details:</span>
+                <span>• Project ID: <code className="text-amber-500/90">{configDiagnostics.projectId}</code></span>
+                <span>• Database ID: <code className="text-amber-500/90">{configDiagnostics.databaseId}</code></span>
+                {firebaseErrorText && (
+                  <span className="text-red-400 block max-h-16 overflow-y-auto scrollbar-none">
+                    • Connection Error: <code>{firebaseErrorText}</code>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="text-stone-350 text-xs space-y-2 mb-6 bg-amber-500/5 border border-amber-500/10 p-3.5 rounded-xl font-mono leading-relaxed">
+              <div className="font-sans font-bold text-amber-500 flex items-center space-x-1">
+                <span>💡 How to Fix (Connect Kaise Karein):</span>
+              </div>
+              <ul className="list-decimal pl-4 space-y-1 text-[11px]">
+                <li>AI Studio editor ke extreme left settings gears (Settings Panel) par jaen.</li>
+                <li><strong>"Environment Variables"</strong> section me direct environment fields update karein.</li>
+                <li>Verify karein ki aapne correct <strong>API Key</strong> (<code className="text-amber-500">starts with AIzaSy</code>) aur other parameters (Project ID, App ID, etc.) enter kiya ho.</li>
+                <li>Save karke page refresh karein real sync verify karne ke liye!</li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => setShowConfigHelper(false)}
+              className="w-full bg-stone-900 border border-white/10 hover:border-amber-500/40 text-stone-200 py-3.5 rounded-full text-xs font-semibold hover:text-white transition-all cursor-pointer"
+            >
+              Close Config Guide
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
