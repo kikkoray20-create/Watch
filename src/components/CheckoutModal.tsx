@@ -77,12 +77,24 @@ export default function CheckoutModal({
         alert('Please complete the compulsory Subscriber Name.');
         return;
       }
-      if (contactOption === 'phone' && !formData.phone) {
+      if (!formData.email) {
+        alert('Please complete the compulsory Contact Email.');
+        return;
+      }
+      if (!formData.phone) {
         alert('Please complete the compulsory Mobile Number.');
         return;
       }
-      if (contactOption === 'email' && !formData.email) {
-        alert('Please complete the compulsory Contact Email.');
+      if (!formData.address) {
+        alert('Please complete the compulsory Shipping Destination Address.');
+        return;
+      }
+      if (!formData.city) {
+        alert('Please complete the compulsory City / Region.');
+        return;
+      }
+      if (!formData.postalCode) {
+        alert('Please complete the compulsory Postal Zip Code.');
         return;
       }
       setStep(2);
@@ -209,47 +221,24 @@ export default function CheckoutModal({
         <div className="p-6">
           
           {step === 1 && (
-            <form onSubmit={handleNextStep} className="space-y-4 text-left">
+            <form onSubmit={handleNextStep} className="space-y-5 text-left">
 
-              {/* Contact Priority Toggle */}
-              <div className="bg-[#121212] p-4 rounded-xl border border-white/5 space-y-3">
-                <span className="text-[10px] font-mono uppercase text-stone-400 block tracking-widest">
-                  Secure Customer Verification Mode
-                </span>
-                
-                {/* 2 options for customer */}
-                <div className="grid grid-cols-2 gap-2 p-1 bg-black rounded-lg border border-white/5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setContactOption('phone');
-                    }}
-                    className={`py-2 px-3 rounded-md text-xs font-mono transition-all text-center cursor-pointer ${
-                      contactOption === 'phone'
-                        ? 'bg-amber-500 text-black font-bold shadow-md'
-                        : 'text-stone-400 hover:text-white'
-                    }`}
-                  >
-                    1. Customer Has Mobile Number
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setContactOption('email');
-                    }}
-                    className={`py-2 px-3 rounded-md text-xs font-mono transition-all text-center cursor-pointer ${
-                      contactOption === 'email'
-                        ? 'bg-amber-500 text-black font-bold shadow-md'
-                        : 'text-stone-400 hover:text-white'
-                    }`}
-                  >
-                    2. No Number (Email Verification)
-                  </button>
-                </div>
+              {/* Informative notification and Autofill helper */}
+              <div className="flex justify-between items-center bg-amber-500/5 p-4 rounded-xl border border-amber-500/10">
+                <p className="text-[10.5px] font-mono text-stone-300 leading-normal">
+                  📌 <span className="text-amber-500 font-bold">MANDATORY INFORMATION REQUIRED</span>: Provide complete contact and shipping coordinates so our logistics and concierge teams can synchronize your delivery profile.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAutoFill}
+                  className="bg-white/5 border border-white/10 text-stone-300 hover:text-white text-[10px] font-mono font-bold px-2.5 py-1.5 rounded transition-all shrink-0 cursor-pointer"
+                >
+                  ⚡ Auto-Fill Demo
+                </button>
               </div>
 
               <div className="space-y-4">
-                {/* Full Subscriber Name - ALWAYS Compulsory */}
+                {/* Full Subscriber Name - Always Compulsory */}
                 <div>
                   <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
                     Full Subscriber Name <span className="text-amber-500 font-bold">* (Compulsory)</span>
@@ -261,135 +250,111 @@ export default function CheckoutModal({
                     value={formData.fullName}
                     onChange={handleInputChange}
                     placeholder="Alexandre Horologue"
-                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-sans"
                   />
                 </div>
 
-                {/* Conditional Contact Render */}
-                {contactOption === 'phone' ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                        Mobile Number <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        required
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        placeholder="+91 98765 43210"
-                        className="w-full px-3 py-2 rounded-lg border border-amber-500/20 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
-                        Contact Email Address <span className="text-stone-600">(Optional)</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="alex.horo@premium.com"
-                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-[#dcdcdc] text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                      />
-                    </div>
+                {/* Contact: Email & Phone - Both Compulsory */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                      Contact Email Address <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="alex.horo@premium.com"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-sans"
+                    />
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                        Contact Email Address <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        required
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="alex.horo@premium.com"
-                        className="w-full px-3 py-2 rounded-lg border border-amber-500/20 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-mono uppercase text-stone-600 block mb-1">
-                        Mobile Number <span className="text-stone-700">(No Number Available)</span>
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value=""
-                        disabled
-                        placeholder="No number option selected"
-                        className="w-full px-3 py-2 rounded-lg border border-white/5 bg-[#121212]/30 text-stone-600 text-sm focus:outline-none cursor-not-allowed font-mono"
-                      />
-                    </div>
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                      Mobile Number <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      required
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="+91 98765 43210"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                    />
                   </div>
-                )}
-              </div>
-
-              {/* Other Fields - Optional / Not Compulsory */}
-              <div>
-                <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
-                  Shipping Destination Address <span className="text-stone-600">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  placeholder="742 Chronograph Avenue"
-                  className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="sm:col-span-2">
-                  <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
-                    City / Region <span className="text-stone-600">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    placeholder="Geneva"
-                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                  />
                 </div>
+
+                {/* Shipping Destination Address - Compulsory */}
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
-                    Postal Zip Code <span className="text-stone-600">(Optional)</span>
+                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                    Shipping Destination Address <span className="text-amber-500 font-bold">* (Compulsory)</span>
                   </label>
                   <input
                     type="text"
-                    name="postalCode"
-                    value={formData.postalCode}
+                    name="address"
+                    required
+                    value={formData.address}
                     onChange={handleInputChange}
-                    placeholder="1201"
-                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                    placeholder="742 Chronograph Avenue"
+                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-[10px] font-mono uppercase text-stone-500 block mb-1">
-                  Country <span className="text-stone-600">(Optional)</span>
-                </label>
-                <select
-                  name="country"
-                  value={formData.country}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none dropdown-dark"
-                >
-                  <option value="India">India</option>
-                  <option value="Switzerland">Switzerland</option>
-                  <option value="United States">United States</option>
-                  <option value="United Kingdom">United Kingdom</option>
-                  <option value="Germany">Germany</option>
-                  <option value="Japan">Japan</option>
-                </select>
+                {/* City & Zip - Compulsory */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                      City / Region <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      required
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      placeholder="Geneva"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                      Postal Zip Code <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="postalCode"
+                      required
+                      value={formData.postalCode}
+                      onChange={handleInputChange}
+                      placeholder="1201"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Country Selection - Compulsory */}
+                <div>
+                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                    Country <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                  </label>
+                  <select
+                    name="country"
+                    required
+                    value={formData.country}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none dropdown-dark"
+                  >
+                    <option value="India">India</option>
+                    <option value="Switzerland">Switzerland</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Germany">Germany</option>
+                    <option value="Japan">Japan</option>
+                  </select>
+                </div>
+
               </div>
 
               <div className="pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-white/5 gap-4">
@@ -400,7 +365,7 @@ export default function CheckoutModal({
                 <button
                   type="submit"
                   id="delivery-next-btn"
-                  className="w-full sm:w-auto bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-colors cursor-pointer"
+                  className="w-full sm:w-auto bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-all duration-200 hover:scale-[1.02] cursor-pointer"
                 >
                   Proceed to Payment Selection
                 </button>
@@ -432,14 +397,20 @@ export default function CheckoutModal({
 
               <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-2 font-mono text-[11px] text-stone-400">
                 <div className="flex justify-between">
-                  <span>Contact Route:</span>
-                  <span className="text-white font-semibold">
-                    {contactOption === 'phone' ? `Mobile (${formData.phone})` : `Email (${formData.email})`}
-                  </span>
-                </div>
-                <div className="flex justify-between">
                   <span>Consignee:</span>
                   <span className="text-white font-semibold">{formData.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Contact Mobile:</span>
+                  <span className="text-white font-semibold">{formData.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Contact Email:</span>
+                  <span className="text-white font-semibold">{formData.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Destination:</span>
+                  <span className="text-white font-semibold text-right max-w-[200px] truncate">{formData.address}, {formData.city}, {formData.country}</span>
                 </div>
               </div>
 

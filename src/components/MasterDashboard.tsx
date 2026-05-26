@@ -52,6 +52,15 @@ export default function MasterDashboard({
 }: MasterDashboardProps) {
   const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customizer'>('catalog');
   
+  // Settings Drafts for Boutique customizer
+  const [draftSettings, setDraftSettings] = useState<BoutiqueSettings>({ ...settings });
+  const [isSettingsSaved, setIsSettingsSaved] = useState(true);
+
+  React.useEffect(() => {
+    setDraftSettings({ ...settings });
+    setIsSettingsSaved(true);
+  }, [settings]);
+
   // Custom timepiece state
   const [isAddingWatch, setIsAddingWatch] = useState(false);
   const [editingWatchId, setEditingWatchId] = useState<string | null>(null);
@@ -265,12 +274,18 @@ export default function MasterDashboard({
     setJsonPaste(JSON.stringify(catalog, null, 2));
   };
 
-  // Update boutique config settings
+  // Update boutique config settings locally (draft state)
   const handleSettingChange = (key: keyof BoutiqueSettings, val: any) => {
-    onUpdateSettings({
-      ...settings,
+    setDraftSettings((prev) => ({
+      ...prev,
       [key]: val,
-    });
+    }));
+    setIsSettingsSaved(false);
+  };
+
+  const handleSaveSettings = () => {
+    onUpdateSettings(draftSettings);
+    setIsSettingsSaved(true);
   };
 
   return (
@@ -829,13 +844,35 @@ export default function MasterDashboard({
         {activeTab === 'customizer' && (
           <div className="space-y-6">
             
-            <div>
-              <h3 className="text-sm font-mono tracking-widest text-[#999999] uppercase select-none font-bold">
-                Boutique Front-end Web Configurator
-              </h3>
-              <p className="text-[11px] text-stone-450 mt-0.5">
-                Altering these variables immediately changes copy values and options across all customer-facing sites.
-              </p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-sm font-mono tracking-widest text-[#999999] uppercase select-none font-bold">
+                  Boutique Front-end Web Configurator
+                </h3>
+                <p className="text-[11px] text-stone-450 mt-0.5">
+                  Prepare setting revisions below, then commit them to the live cloud store using the Save button on the right.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                {!isSettingsSaved && (
+                  <span className="text-[10px] text-amber-500 font-mono font-bold animate-pulse">
+                    ● UNSAVED CHANGES
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  className={`px-5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all duration-300 ${
+                    isSettingsSaved
+                      ? 'bg-[#121212] border border-white/10 text-stone-500 cursor-not-allowed'
+                      : 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer'
+                  }`}
+                  disabled={isSettingsSaved}
+                >
+                  Save Storefront Changes
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/40 p-6 rounded-2xl border border-white/5 text-xs text-left">
@@ -850,7 +887,7 @@ export default function MasterDashboard({
                   <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Boutique Brand Logo Name</label>
                   <input
                     type="text"
-                    value={settings.storeName}
+                    value={draftSettings.storeName || ''}
                     onChange={(e) => handleSettingChange('storeName', e.target.value)}
                     className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                   />
@@ -861,7 +898,7 @@ export default function MasterDashboard({
                   <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Discounts Promo Code Token</label>
                   <input
                     type="text"
-                    value={settings.promoCode}
+                    value={draftSettings.promoCode || ''}
                     onChange={(e) => handleSettingChange('promoCode', e.target.value.toUpperCase())}
                     className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono uppercase"
                   />
@@ -871,7 +908,7 @@ export default function MasterDashboard({
                   <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Promo Percentage Discount (%)</label>
                   <input
                     type="number"
-                    value={settings.promoDiscountPercent}
+                    value={draftSettings.promoDiscountPercent || 0}
                     onChange={(e) => handleSettingChange('promoDiscountPercent', Number(e.target.value))}
                     className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                   />
@@ -882,17 +919,17 @@ export default function MasterDashboard({
                   <div className="flex items-center space-x-2 pt-1 font-mono text-stone-300">
                     <button
                       type="button"
-                      onClick={() => handleSettingChange('warrantyActive', !settings.warrantyActive)}
+                      onClick={() => handleSettingChange('warrantyActive', !draftSettings.warrantyActive)}
                       className="text-amber-500 cursor-pointer text-stone-400 focus:outline-none"
                     >
-                      {settings.warrantyActive ? (
+                      {draftSettings.warrantyActive ? (
                         <ToggleRight className="h-8 w-8 text-amber-500" />
                       ) : (
                         <ToggleLeft className="h-8 w-8 text-stone-600" />
                       )}
                     </button>
                     <span className="text-[10px]">
-                      {settings.warrantyActive ? 'ENABLED: Show live spec chip on Watch Details' : 'DISABLED: Hide live specs warranty indicator'}
+                      {draftSettings.warrantyActive ? 'ENABLED: Show live spec chip on Watch Details' : 'DISABLED: Hide live specs warranty indicator'}
                     </span>
                   </div>
                 </div>
@@ -909,7 +946,7 @@ export default function MasterDashboard({
                   <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Hero Section Tagline Subtitle</label>
                   <input
                     type="text"
-                    value={settings.heroSub}
+                    value={draftSettings.heroSub || ''}
                     onChange={(e) => handleSettingChange('heroSub', e.target.value)}
                     className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
@@ -919,7 +956,7 @@ export default function MasterDashboard({
                   <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Hero Main Large Headline Title</label>
                   <input
                     type="text"
-                    value={settings.heroTitle}
+                    value={draftSettings.heroTitle || ''}
                     onChange={(e) => handleSettingChange('heroTitle', e.target.value)}
                     className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
@@ -929,7 +966,7 @@ export default function MasterDashboard({
                   <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Hero Narrative Description Copy</label>
                   <textarea
                     rows={4}
-                    value={settings.heroDesc}
+                    value={draftSettings.heroDesc || ''}
                     onChange={(e) => handleSettingChange('heroDesc', e.target.value)}
                     className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none leading-relaxed"
                   />
@@ -938,11 +975,23 @@ export default function MasterDashboard({
 
             </div>
 
-            <div className="bg-amber-500/5 p-4 rounded-xl border border-amber-500/10 max-w-lg text-left text-[11px] font-mono flex items-center space-x-2.5">
-              <CheckCircle className="h-5 w-5 text-amber-500 shrink-0" />
-              <p className="text-stone-300">
-                ⚡ Real-time web cache synchronization enabled. All configuration options undergo fast local hot reload compilation automatically.
-              </p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-amber-500/5 p-4 rounded-xl border border-amber-500/10 text-left">
+              <div className="text-[11px] font-mono flex items-center space-x-2.5">
+                <CheckCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                <p className="text-stone-300">
+                  ⚡ Configuration updates will sync directly with the Cloud Firestore Database upon clicking Save.
+                </p>
+              </div>
+
+              {!isSettingsSaved && (
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-lg font-mono uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  ⚡ Click to Save Changes
+                </button>
+              )}
             </div>
 
           </div>
