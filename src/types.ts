@@ -76,6 +76,12 @@ export interface UserProfile {
   isAdmin?: boolean;
 }
 
+export interface GiftBoxOption {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export interface BoutiqueSettings {
   storeName: string;
   promoCode: string;
@@ -84,6 +90,8 @@ export interface BoutiqueSettings {
   heroSub: string;
   heroDesc: string;
   warrantyActive: boolean;
+  giftWrappingEnabled?: boolean;
+  giftBoxOptions?: GiftBoxOption[];
 }
 
 export interface CompactOrder {

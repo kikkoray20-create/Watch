@@ -29,12 +29,26 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeDiscount, setActiveDiscount] = useState<{ code: string; percent: number } | null>(null);
   const [isGiftWrapSelected, setIsGiftWrapSelected] = useState(false);
+  const [selectedGiftBoxId, setSelectedGiftBoxId] = useState<string>('leather');
   const [notifications, setNotifications] = useState<string[]>([]);
 
   // Boutique Storefront Settings Customize Space
   const [boutiqueSettings, setBoutiqueSettings] = useState<BoutiqueSettings>(() => {
     const saved = localStorage.getItem('chronos_settings');
-    return saved ? JSON.parse(saved) : {
+    const defaultOpts = [
+      { id: 'leather', name: 'Luxury Leather Gift Box', price: 1250 },
+      { id: 'walnut', name: 'Solid Walnut Collector\'s Case', price: 3500 },
+      { id: 'velvet', name: 'Velvet Heritage Pouch', price: 750 }
+    ];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        giftWrappingEnabled: true,
+        giftBoxOptions: defaultOpts,
+        ...parsed
+      };
+    }
+    return {
       storeName: 'CHRONOS',
       promoCode: 'SHOPIFY20',
       promoDiscountPercent: 20,
@@ -42,6 +56,8 @@ export default function App() {
       heroSub: 'For Generation Sovereigns',
       heroDesc: 'Experience the masterworks of micro-mechanics. Our watches combine aerospace-grade lightweight titanium housing, box sapphire crystals, and complex gear-turning manual Tourbillon calibre movements.',
       warrantyActive: true,
+      giftWrappingEnabled: true,
+      giftBoxOptions: defaultOpts,
     };
   });
 
@@ -89,7 +105,7 @@ export default function App() {
         ],
         shippingDetails: {
           fullName: 'Alexandre Horologue',
-          email: 'alex.horo@premium.com',
+          email: '9876543215',
           address: '742 Chronograph Avenue',
           city: 'Geneva',
           postalCode: '1201',
@@ -128,6 +144,12 @@ export default function App() {
             heroSub: 'For Generation Sovereigns',
             heroDesc: 'Experience the masterworks of micro-mechanics. Our watches combine aerospace-grade lightweight titanium housing, box sapphire crystals, and complex gear-turning manual Tourbillon calibre movements.',
             warrantyActive: true,
+            giftWrappingEnabled: true,
+            giftBoxOptions: [
+              { id: 'leather', name: 'Luxury Leather Gift Box', price: 1250 },
+              { id: 'walnut', name: 'Solid Walnut Collector\'s Case', price: 3500 },
+              { id: 'velvet', name: 'Velvet Heritage Pouch', price: 750 }
+            ],
           };
           try {
             await setDoc(docRef, defaultSettings);
@@ -397,6 +419,18 @@ export default function App() {
     triggerNotification(`Added "${watch.name}" to your shipping satchel!`);
   };
 
+  // Direct checkout purchase handler
+  const handleBuyNow = (watch: WatchModel) => {
+    setCart((prevCart) => {
+      const existing = prevCart.find((item) => item.watch.id === watch.id);
+      if (existing) {
+        return prevCart;
+      }
+      return [...prevCart, { watch, quantity: 1 }];
+    });
+    setIsCheckoutOpen(true);
+  };
+
   // Manage quantity
   const handleUpdateQuantity = (watchId: string, qty: number) => {
     if (qty <= 0) {
@@ -418,9 +452,12 @@ export default function App() {
   };
 
   // Process core checkout trigger
-  const handleCheckoutInitiation = (discount: { code: string; percent: number }, giftWrap: boolean) => {
+  const handleCheckoutInitiation = (discount: { code: string; percent: number }, giftWrap: boolean, giftBoxId?: string) => {
     setActiveDiscount(discount.code ? discount : null);
     setIsGiftWrapSelected(giftWrap);
+    if (giftBoxId) {
+      setSelectedGiftBoxId(giftBoxId);
+    }
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
@@ -430,7 +467,13 @@ export default function App() {
     // Determine the calculated total
     const subtotal = cart.reduce((acc, item) => acc + item.watch.price * item.quantity, 0);
     const discountAmount = activeDiscount ? (subtotal * activeDiscount.percent) / 100 : 0;
-    const giftWrappingCost = isGiftWrapSelected ? 1250 : 0;
+    
+    const giftBoxOpts = boutiqueSettings.giftBoxOptions || [
+      { id: 'leather', name: 'Luxury Leather Gift Box', price: 1250 }
+    ];
+    const selectedBox = giftBoxOpts.find(b => b.id === selectedGiftBoxId);
+    const giftWrappingCost = isGiftWrapSelected && selectedBox ? selectedBox.price : 0;
+    
     const shippingCost = subtotal > 400000 || subtotal === 0 ? 0 : 12500;
     const totalAmount = subtotal - discountAmount + giftWrappingCost + shippingCost;
 
@@ -1001,6 +1044,7 @@ export default function App() {
             watch={activeWatchPage}
             onBack={() => setActiveWatchPage(null)}
             onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
             onSelectAnotherWatch={(wt) => setActiveWatchPage(wt)}
             warrantyActive={boutiqueSettings.warrantyActive}
             catalog={catalog}
@@ -1175,6 +1219,12 @@ export default function App() {
         onCheckout={handleCheckoutInitiation}
         customPromoCode={boutiqueSettings.promoCode}
         customPromoDiscountPercent={boutiqueSettings.promoDiscountPercent}
+        giftWrappingEnabled={boutiqueSettings.giftWrappingEnabled !== false}
+        giftBoxOptions={boutiqueSettings.giftBoxOptions || [
+          { id: 'leather', name: 'Luxury Leather Gift Box', price: 1250 }
+        ]}
+        selectedGiftBoxId={selectedGiftBoxId}
+        onSelectGiftBox={setSelectedGiftBoxId}
       />
 
       {/* Checkout Payment Wizard */}
@@ -1184,6 +1234,10 @@ export default function App() {
         cart={cart}
         appliedPromo={activeDiscount}
         giftWrapping={isGiftWrapSelected}
+        selectedGiftBoxId={selectedGiftBoxId}
+        giftBoxOptions={boutiqueSettings.giftBoxOptions || [
+          { id: 'leather', name: 'Luxury Leather Gift Box', price: 1250 }
+        ]}
         onOrderCompleted={handleOrderCompleted}
         user={currentUser}
         onLogin={handleLoginUser}

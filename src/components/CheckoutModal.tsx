@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, CreditCard, ChevronRight, CheckCircle2, Terminal, RefreshCw, Send, Loader2 } from 'lucide-react';
-import { CartItem, CheckoutDetails, WebhookLog, UserProfile } from '../types';
+import { CartItem, CheckoutDetails, WebhookLog, UserProfile, GiftBoxOption } from '../types';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -8,6 +8,8 @@ interface CheckoutModalProps {
   cart: CartItem[];
   appliedPromo: { code: string; percent: number } | null;
   giftWrapping: boolean;
+  selectedGiftBoxId?: string;
+  giftBoxOptions?: GiftBoxOption[];
   onOrderCompleted: (details: CheckoutDetails, generatedLogs: WebhookLog[]) => void;
   user: UserProfile | null;
   onLogin: (email: string, fullName: string, password?: string, isSignUp?: boolean) => Promise<void>;
@@ -19,6 +21,8 @@ export default function CheckoutModal({
   cart,
   appliedPromo,
   giftWrapping,
+  selectedGiftBoxId = 'leather',
+  giftBoxOptions = [],
   onOrderCompleted,
   user,
   onLogin,
@@ -64,7 +68,10 @@ export default function CheckoutModal({
   // Calculative indices
   const subtotal = cart.reduce((acc, item) => acc + item.watch.price * item.quantity, 0);
   const discountAmount = appliedPromo ? (subtotal * appliedPromo.percent) / 100 : 0;
-  const giftWrappingCost = giftWrapping ? 1250.00 : 0;
+  
+  const selectedBox = giftBoxOptions.find(b => b.id === selectedGiftBoxId) || giftBoxOptions[0];
+  const giftWrappingCost = giftWrapping && selectedBox ? selectedBox.price : 0;
+  
   const shippingCost = subtotal > 400000 || subtotal === 0 ? 0.00 : 12500.00;
   const totalAmount = subtotal - discountAmount + giftWrappingCost + shippingCost;
 
@@ -82,8 +89,27 @@ export default function CheckoutModal({
       if (authTab === 'signup' && !authFullName.trim()) {
         throw new Error('Please enter your full name to enroll.');
       }
+
+      const cleaned = authEmail.trim();
+      if (!cleaned) {
+        throw new Error('Please enter your mobile number.');
+      }
+
+      // Main customers must use mobile numbers. Bypass only for the master admin.
+      const isAdminUser = cleaned === 'admin' || cleaned === 'admin@chronos.com';
+      if (!isAdminUser) {
+        if (cleaned.includes('@')) {
+          throw new Error('Email logins are not allowed. Please login or sign up using your mobile number.');
+        }
+        // Mobile number structure verification
+        const phoneRegex = /^[+]?[0-9\s\-()]{10,20}$/;
+        if (!phoneRegex.test(cleaned)) {
+          throw new Error('Invalid mobile number. Please enter a valid mobile number (minimum 10 digits).');
+        }
+      }
+
       await onLogin(
-        authEmail,
+        cleaned,
         authTab === 'signup' ? authFullName : '',
         authPassword,
         authTab === 'signup'
@@ -103,7 +129,7 @@ export default function CheckoutModal({
     setFormData((prev) => ({
       ...prev,
       fullName: 'Alexandre Horologue',
-      email: 'alex.horo@premium.com',
+      email: '9876543215',
       address: '742 Chronograph Avenue',
       city: 'Geneva',
       postalCode: '1201',
@@ -116,7 +142,7 @@ export default function CheckoutModal({
     }));
 
     if (!user) {
-      onLogin('alex.horo@premium.com', 'Alexandre Horologue', '•••••••••', false).catch(() => {});
+      onLogin('9876543215', 'Alexandre Horologue', '•••••••••', false).catch(() => {});
     }
   };
 
@@ -132,9 +158,11 @@ export default function CheckoutModal({
         return;
       }
       if (!formData.email) {
-        alert('No registered email coordinates are matched. Please authenticate first.');
+        alert('No registered mobile number coordinates are matched. Please authenticate first.');
         return;
       }
+      setStep(2);
+    } else if (step === 2) {
       if (!formData.address) {
         alert('Please complete the compulsory Shipping Destination Address.');
         return;
@@ -147,7 +175,9 @@ export default function CheckoutModal({
         alert('Please complete the compulsory Postal Zip Code.');
         return;
       }
-      setStep(2);
+      setStep(3);
+    } else if (step === 3) {
+      setStep(4);
     }
   };
 
@@ -355,10 +385,10 @@ export default function CheckoutModal({
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">Email Coordinates</label>
+                        <label className="text-[9px] font-mono uppercase tracking-wider text-amber-500 block mb-1 font-bold">10-Digit Mobile Number (No Email)</label>
                         <input
-                          type="email"
-                          placeholder="alex.horo@premium.com"
+                          type="tel"
+                          placeholder="e.g. 9876543210 (or admin)"
                           value={authEmail}
                           onChange={(e) => setAuthEmail(e.target.value)}
                           className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
@@ -411,7 +441,7 @@ export default function CheckoutModal({
               {/* Profile Bar indicator */}
               <div className="bg-white/5 p-3 rounded-lg border border-white/5 flex justify-between items-center text-[11px] font-mono text-stone-400">
                 <span>Shipping coordinates for: <strong className="text-white font-sans">{formData.fullName || user?.fullName}</strong></span>
-                <span className="text-stone-500">[{formData.email || user?.email}]</span>
+                <span className="text-stone-500">[Mobile: {formData.email || user?.email}]</span>
               </div>
 
               <form onSubmit={handleNextStep} className="space-y-4">
@@ -507,107 +537,25 @@ export default function CheckoutModal({
 
           {step === 3 && (
             <div className="space-y-5 text-left">
-              {/* Credit card styling widget */}
-              <div className="bg-gradient-to-br from-stone-900 via-neutral-950 to-stone-900 border border-white/10 p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between h-40 shadow-xl select-none">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-8 -mt-8 pointer-events-none"></div>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-[8px] font-mono uppercase tracking-widest text-amber-500 font-semibold mb-0.5">Chronos Private Client</p>
-                    <span className="font-serif text-sm italic text-stone-300">Boutique Card</span>
-                  </div>
-                  <div className="h-6 w-8 bg-amber-500/10 rounded-md border border-amber-500/20 flex items-center justify-center">
-                    <span className="text-[10px] font-mono text-amber-400 font-bold">VIP</span>
-                  </div>
+              {/* Premium Direct Contact Payment Panel */}
+              <div className="bg-gradient-to-br from-neutral-900 to-stone-950 border border-amber-500/30 p-8 rounded-2xl text-center space-y-4">
+                <div className="mx-auto h-12 w-12 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20">
+                  <CreditCard className="h-6 w-6 text-amber-500" />
                 </div>
-
-                {/* Card Number display */}
-                <div className="font-mono text-base tracking-widest text-white/90 drop-shadow-md">
-                  {formData.cardNumber || '•••• •••• •••• ••••'}
+                <div className="space-y-2">
+                  <h3 className="font-mono text-xs font-bold tracking-widest text-amber-500 uppercase">
+                    Secure Order Gateway
+                  </h3>
+                  <p className="font-serif text-lg font-bold text-white tracking-wide uppercase leading-tight">
+                    FOR PAYMENT, OUR TEAM WILL CONNECT WITH YOU.
+                  </p>
+                  <p className="text-[11px] font-sans text-stone-400">
+                    Once you finalize this order collation, our private boutique manager will reach out via your registered mobile number to process custom payment parameters and options.
+                  </p>
                 </div>
-
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-[7px] font-mono uppercase tracking-wider text-stone-500">Cardholder</p>
-                    <p className="font-sans text-[11px] text-white/80 font-medium truncate max-w-[150px] uppercase">
-                      {formData.cardName || formData.fullName || user?.fullName || 'Alexandre Horologue'}
-                    </p>
-                  </div>
-                  <div className="flex space-x-4">
-                    <div>
-                      <p className="text-[7px] font-mono uppercase tracking-wider text-stone-500">Exp</p>
-                      <p className="font-mono text-[11px] text-white/80">{formData.expiry || 'MM/YY'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[7px] font-mono uppercase tracking-wider text-stone-500">CVV</p>
-                      <p className="font-mono text-[11px] text-white/80">{formData.cvv || '•••'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Luxury concierge information panel */}
-              <div className="bg-amber-500/5 border border-amber-500/25 p-4 rounded-xl space-y-2">
-                <p className="text-[10.5px] font-mono uppercase text-amber-500 font-semibold leading-none tracking-wider">
-                  🔒 Premium Concierge Verification Protocol
-                </p>
-                <p className="text-[11px] font-sans text-stone-300 leading-relaxed">
-                  Timepieces are shipped globally with DHL priority air-freight custom insurance. Before processing, our private luxury concierge team will reach out directly to authenticate card and finalize customized order delivery sequencing.
-                </p>
               </div>
 
               <form onSubmit={handleNextStep} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Cardholder Name <span className="text-stone-500">*</span></label>
-                    <input
-                      type="text"
-                      name="cardName"
-                      required
-                      value={formData.cardName}
-                      onChange={handleInputChange}
-                      placeholder="Alexandre Horologue"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Card Number <span className="text-stone-500">*</span></label>
-                    <input
-                      type="text"
-                      name="cardNumber"
-                      required
-                      value={formData.cardNumber}
-                      onChange={handleInputChange}
-                      placeholder="4111 2222 3333 4444"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Expiration (MM/YY) <span className="text-stone-500">*</span></label>
-                    <input
-                      type="text"
-                      name="expiry"
-                      required
-                      value={formData.expiry}
-                      onChange={handleInputChange}
-                      placeholder="12/29"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Security Code (CVV) <span className="text-stone-500">*</span></label>
-                    <input
-                      type="password"
-                      name="cvv"
-                      maxLength={4}
-                      required
-                      value={formData.cvv}
-                      onChange={handleInputChange}
-                      placeholder="399"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                </div>
-
                 <div className="pt-4 flex justify-between items-center border-t border-white/5 mx-auto">
                   <button
                     type="button"
@@ -618,7 +566,7 @@ export default function CheckoutModal({
                   </button>
                   <button
                     type="submit"
-                    className="bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-all duration-200 cursor-pointer"
+                    className="bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-all duration-200 cursor-pointer uppercase font-mono"
                   >
                     Proceed to Collation
                   </button>
@@ -663,7 +611,7 @@ export default function CheckoutModal({
                   <div>
                     <span className="text-[9px] font-mono text-stone-500 uppercase block mb-1">Verified Member</span>
                     <p className="text-white font-semibold font-sans leading-tight">{formData.fullName || user?.fullName}</p>
-                    <p className="text-stone-400 font-mono text-[10px]">{formData.email || user?.email}</p>
+                    <p className="text-stone-400 font-mono text-[10px]">Mobile: {formData.email || user?.email}</p>
                     <p className="text-stone-500 font-mono text-[9px] mt-1">Tier: {user?.memberTier || 'Loyal Collector'}</p>
                   </div>
                   <div>
@@ -678,9 +626,9 @@ export default function CheckoutModal({
                 <div className="pt-2 border-t border-white/5 text-[11px]">
                   <span className="text-[9px] font-mono text-stone-500 uppercase block mb-1">Approved Payment Source</span>
                   <div className="flex justify-between items-center text-stone-400">
-                    <span>VIP Client Card</span>
-                    <span className="font-mono text-white">
-                      {formData.cardNumber ? `${formData.cardNumber.slice(0, 4)} •••• •••• ${formData.cardNumber.slice(-4)}` : '•••• •••• •••• ••••'}
+                    <span>Direct Team Connection</span>
+                    <span className="font-mono text-amber-500 font-bold uppercase text-[9.5px]">
+                      Team Will Connect
                     </span>
                   </div>
                 </div>
@@ -699,7 +647,7 @@ export default function CheckoutModal({
                   )}
                   {giftWrapping && (
                     <div className="flex justify-between">
-                      <span>Gift Wrapping & Registry Wax</span>
+                      <span>🎁 {selectedBox?.name || 'Gift Wrapping'}</span>
                       <span>₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}

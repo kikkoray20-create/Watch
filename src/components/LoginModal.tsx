@@ -40,14 +40,28 @@ export default function LoginModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    const cleaned = email.trim();
+    if (!cleaned) return;
 
     setIsSubmitting(true);
     setErrorMsg('');
 
     try {
+      // Main customers must use mobile numbers only. Bypass only for admin profiles.
+      const isAdminUser = cleaned === 'admin' || cleaned === 'admin@chronos.com';
+      if (!isAdminUser) {
+        if (cleaned.includes('@')) {
+          throw new Error('Email logins have been disabled. Please login or register using your 10-digit mobile number.');
+        }
+        // Verify valid mobile digit structures
+        const phoneRegex = /^[+]?[0-9\s\-()]{10,20}$/;
+        if (!phoneRegex.test(cleaned)) {
+          throw new Error('Please enter a valid mobile number (minimum 10 digits).');
+        }
+      }
+
       const nameToUse = isRegistering ? fullName || 'Vanguard Collector' : fullName || 'Alexandre Horologue';
-      await onLogin(email, nameToUse, password, isRegistering);
+      await onLogin(cleaned, nameToUse, password, isRegistering);
       setEmail('');
       setPassword('');
       setFullName('');
@@ -60,7 +74,7 @@ export default function LoginModal({
   };
 
   const handleAutocompleteDemo = () => {
-    setEmail('alex.horo@premium.com');
+    setEmail('9876543215');
     setPassword('•••••••••');
     setFullName('Alexandre Horologue');
     setIsRegistering(false);
@@ -245,7 +259,7 @@ export default function LoginModal({
                   <h3 className="font-serif text-2xl font-semibold text-white">
                     {user.fullName}
                   </h3>
-                  <p className="text-stone-400 text-xs font-mono">{user.email}</p>
+                  <p className="text-stone-400 text-xs font-mono">{user.email.includes('@') ? user.email : `Mobile: ${user.email}`}</p>
                 </div>
 
                 {/* Reward Loyalty Card Panel */}
@@ -394,13 +408,13 @@ export default function LoginModal({
                   )}
 
                   <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-455 block mb-1">Email / Login Number</label>
+                    <label className="text-[10px] font-mono uppercase text-amber-500 block mb-1 font-bold">10-Digit Mobile Number (No Email)</label>
                     <input
-                      type="text"
+                      type="tel"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="alex.horo@premium.com or admin"
+                      placeholder="e.g. 9876543210 (or admin)"
                       className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>

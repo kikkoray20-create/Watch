@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Trash2, Plus, Minus, Gift, Percent, HelpCircle } from 'lucide-react';
-import { CartItem } from '../types';
+import { CartItem, GiftBoxOption } from '../types';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -8,9 +8,13 @@ interface CartDrawerProps {
   cart: CartItem[];
   onUpdateQuantity: (id: string, q: number) => void;
   onRemoveItem: (id: string) => void;
-  onCheckout: (discount: { code: string; percent: number }, giftWrap: boolean) => void;
+  onCheckout: (discount: { code: string; percent: number }, giftWrap: boolean, giftBoxId?: string) => void;
   customPromoCode?: string;
   customPromoDiscountPercent?: number;
+  giftWrappingEnabled?: boolean;
+  giftBoxOptions?: GiftBoxOption[];
+  selectedGiftBoxId?: string;
+  onSelectGiftBox?: (id: string) => void;
 }
 
 export default function CartDrawer({
@@ -22,6 +26,10 @@ export default function CartDrawer({
   onCheckout,
   customPromoCode,
   customPromoDiscountPercent,
+  giftWrappingEnabled = true,
+  giftBoxOptions = [],
+  selectedGiftBoxId = 'leather',
+  onSelectGiftBox,
 }: CartDrawerProps) {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; percent: number } | null>(null);
@@ -38,8 +46,10 @@ export default function CartDrawer({
   // Discount
   const discountAmount = appliedPromo ? (subtotal * appliedPromo.percent) / 100 : 0;
   
-  // Gift wrapping
-  const giftWrappingCost = giftWrapping ? 1250.00 : 0;
+  // Gift wrapping cost calculations using the custom box option list
+  const activeBoxId = selectedGiftBoxId || (giftBoxOptions[0]?.id || 'leather');
+  const selectedBox = giftBoxOptions.find(b => b.id === activeBoxId) || giftBoxOptions[0];
+  const giftWrappingCost = giftWrapping && selectedBox ? selectedBox.price : 0;
   
   // Shipping
   const shippingCost = subtotal > FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0.00 : 12500.00;
@@ -200,22 +210,52 @@ export default function CartDrawer({
           {/* Pricing Ledger Footing */}
           {cart.length > 0 && (
             <div className="border-t border-white/5 p-6 bg-[#121212] space-y-4">
-              
-              {/* Promo input and optional Gift wrap toggle in compact container */}
+                   {/* Promo input and optional Gift wrap toggle in compact container */}
               <div className="space-y-3">
                 {/* Gift wrapping toggle */}
-                <label className="flex items-center space-x-3 cursor-pointer bg-[#151515] px-3 py-2 rounded-lg border border-white/5 select-none">
+                <label className={`flex items-center space-x-3 cursor-pointer bg-[#151515] px-3 py-2 rounded-lg border border-white/5 select-none ${!giftWrappingEnabled ? 'hidden' : ''}`}>
                   <input
                     type="checkbox"
                     checked={giftWrapping}
                     onChange={(e) => setGiftWrapping(e.target.checked)}
-                    className="rounded border-white/10 text-amber-500 bg-[#0e0e0e] focus:ring-amber-500"
+                    disabled={!giftWrappingEnabled}
+                    className="rounded border-white/10 text-amber-500 bg-[#0e0e0e] focus:ring-amber-500 disabled:opacity-50"
                   />
                   <div className="flex items-center space-x-2 text-stone-300">
                     <Gift className="h-4 w-4 text-amber-500" />
-                    <span className="text-xs font-medium">Add Luxury Leather Gift Box Wrapping (+₹1,250.00)</span>
+                    <span className="text-xs font-medium">Add {selectedBox?.name || 'Luxury Leather Gift Box Wrapping'} (+₹{selectedBox ? selectedBox.price.toLocaleString('en-IN') : '1,250'})</span>
                   </div>
                 </label>
+
+                {giftWrappingEnabled && giftWrapping && giftBoxOptions.length > 1 && (
+                  <div className="bg-[#0e0e0e] border border-[#1a1a1a] p-3 rounded-lg space-y-2 transition-all text-xs" id="gift-box-selection-panel">
+                    <span className="text-[10px] text-stone-450 uppercase tracking-widest block font-extrabold flex items-center space-x-1">
+                      <Gift className="h-3 w-3 text-amber-500" />
+                      <span>Select Gift Box Option</span>
+                    </span>
+                    <div className="space-y-1.5">
+                      {giftBoxOptions.map((opt) => (
+                        <label key={opt.id} className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer text-[11px] ${
+                          activeBoxId === opt.id 
+                            ? 'bg-amber-500/5 border-amber-500/30 text-amber-400 font-bold' 
+                            : 'bg-black/30 border-white/5 text-stone-300 hover:bg-white/5'
+                        }`}>
+                          <div className="flex items-center space-x-2.5">
+                            <input
+                              type="radio"
+                              name="giftBoxSel"
+                              checked={activeBoxId === opt.id}
+                              onChange={() => onSelectGiftBox && onSelectGiftBox(opt.id)}
+                              className="text-amber-500 focus:ring-amber-500 bg-black border-white/10"
+                            />
+                            <span>{opt.name}</span>
+                          </div>
+                          <span className="font-mono text-stone-400">₹{opt.price.toLocaleString('en-IN')}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Promo Coupon Form */}
                 {!appliedPromo ? (
@@ -267,8 +307,11 @@ export default function CartDrawer({
                   </div>
                 )}
                 {giftWrapping && (
-                  <div className="flex justify-between">
-                    <span>Premium Leather Wrap</span>
+                  <div className="flex justify-between border-b border-white/5 pb-1 select-none">
+                    <span className="flex items-center space-x-1">
+                      <span>🎁 wrap:</span>
+                      <span className="text-amber-400 italic text-[10px] max-w-[150px] truncate">({selectedBox?.name || 'Default Wrapping'})</span>
+                    </span>
                     <span className="font-mono text-white">₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
@@ -309,7 +352,7 @@ export default function CartDrawer({
 
               <button
                 id="checkout-initiate-btn"
-                onClick={() => onCheckout(appliedPromo || { code: '', percent: 0 }, giftWrapping)}
+                onClick={() => onCheckout(appliedPromo || { code: '', percent: 0 }, giftWrapping, activeBoxId)}
                 className="w-full bg-white text-black hover:bg-amber-500 hover:text-black py-4 rounded-xl text-xs font-bold tracking-widest uppercase transition-all duration-300 hover:shadow-[0_0_15px_rgba(245,158,11,0.25)]"
               >
                 Secure Checkout

@@ -69,6 +69,10 @@ export default function MasterDashboard({
   const [draftSettings, setDraftSettings] = useState<BoutiqueSettings>({ ...settings });
   const [isSettingsSaved, setIsSettingsSaved] = useState(true);
 
+  // Gift Box Option customizer states
+  const [newBoxName, setNewBoxName] = useState('');
+  const [newBoxPrice, setNewBoxPrice] = useState<number>(1000);
+
   // Customer Management States
   const [customerSearch, setCustomerSearch] = useState('');
   const [showRegularOnly, setShowRegularOnly] = useState(false);
@@ -1372,6 +1376,151 @@ export default function MasterDashboard({
                 </div>
               </div>
 
+            </div>
+
+            {/* Dynamic Packaging & Gift Wrapping customizer section */}
+            <div className="bg-[#121212] p-6 rounded-2xl border border-white/5 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/5 pb-3">
+                <div>
+                  <h4 className="text-[11px] font-mono text-amber-500 uppercase tracking-widest font-bold">
+                    PREMIUM PACKAGING & LUXURY GIFT WRAPPING SERVICES
+                  </h4>
+                  <p className="text-[10px] text-stone-450 mt-0.5">
+                    Configure luxury wrapping checkboxes, toggle gift services, or add custom box sizes and materials dynamically.
+                  </p>
+                </div>
+                
+                {/* Gift wrapping service toggle switch */}
+                <div className="flex items-center space-x-2 mt-2 sm:mt-0 bg-[#0a0a0a] px-3.5 py-1.5 rounded-xl border border-white/5 select-none font-mono">
+                  <span className="text-[10px] text-stone-400">Wrapping Service:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSettingChange('giftWrappingEnabled', draftSettings.giftWrappingEnabled !== false ? false : true)}
+                    className="text-amber-500 cursor-pointer focus:outline-none"
+                    id="giftWrapMasterToggle"
+                  >
+                    {draftSettings.giftWrappingEnabled !== false ? (
+                      <ToggleRight className="h-7 w-7 text-amber-500" />
+                    ) : (
+                      <ToggleLeft className="h-7 w-7 text-stone-600" />
+                    )}
+                  </button>
+                  <span className={`text-[10px] font-bold ${draftSettings.giftWrappingEnabled !== false ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {draftSettings.giftWrappingEnabled !== false ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+              </div>
+
+              {draftSettings.giftWrappingEnabled !== false ? (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs text-left" id="master-gift-box-customizer">
+                  
+                  {/* Current Active packaging option table list */}
+                  <div className="md:col-span-7 col-span-1 border border-white/5 bg-[#0a0a0a] rounded-xl p-4 space-y-3">
+                    <span className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block font-bold border-b border-white/5 pb-2">
+                      Active Boutique Box Packaging Variants
+                    </span>
+                    
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                      {((draftSettings.giftBoxOptions && draftSettings.giftBoxOptions.length > 0) ? draftSettings.giftBoxOptions : [
+                        { id: 'leather', name: 'Luxury Leather Gift Box', price: 1250 }
+                      ]).map((option) => (
+                        <div key={option.id} className="flex justify-between items-center p-2.5 rounded-lg border border-white/5 bg-black/40 hover:bg-black transition-colors">
+                          <div className="space-y-0.5">
+                            <span className="font-serif font-bold text-stone-200 block text-xs">{option.name}</span>
+                            <span className="text-[9px] text-stone-500 block font-mono">ID: {option.id}</span>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <span className="font-mono text-amber-400 font-semibold text-xs">₹{option.price.toLocaleString('en-IN')}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentList = draftSettings.giftBoxOptions || [
+                                  { id: 'leather', name: 'Luxury Leather Gift Box', price: 1250 }
+                                ];
+                                const newList = currentList.filter(item => item.id !== option.id);
+                                handleSettingChange('giftBoxOptions', newList);
+                              }}
+                              className="text-stone-500 hover:text-rose-400 hover:bg-rose-950/20 p-1.5 rounded-lg transition-colors cursor-pointer"
+                              title="Delete Variant Option"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {(!draftSettings.giftBoxOptions || draftSettings.giftBoxOptions.length === 0) && (
+                        <p className="text-stone-500 text-xs text-center py-4 italic font-sans">
+                          No customized box options. Please register a variant on the right.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Add new packaging options form */}
+                  <div className="md:col-span-5 col-span-1 border border-white/5 bg-[#0a0a0a] rounded-xl p-4 space-y-4">
+                    <span className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block font-bold border-b border-white/5 pb-2">
+                      Add Custom Box Wrapping Variant Option
+                    </span>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-mono text-stone-400 uppercase tracking-wider block">Box Title Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Crafted Rosewood Case"
+                          value={newBoxName}
+                          onChange={(e) => setNewBoxName(e.target.value)}
+                          className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-sans"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-mono text-stone-400 uppercase tracking-wider block">Option Value Cost Price (₹)</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 1500"
+                          value={newBoxPrice}
+                          onChange={(e) => setNewBoxPrice(Number(e.target.value))}
+                          className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newBoxName.trim()) return;
+                          const newBox = {
+                            id: 'box_' + Date.now(),
+                            name: newBoxName.trim(),
+                            price: Math.max(0, newBoxPrice || 0)
+                          };
+                          const currentList = draftSettings.giftBoxOptions || [
+                            { id: 'leather', name: 'Luxury Leather Gift Box', price: 1250 }
+                          ];
+                          const newList = [...currentList, newBox];
+                          handleSettingChange('giftBoxOptions', newList);
+                          setNewBoxName('');
+                          setNewBoxPrice(1000);
+                        }}
+                        className="w-full bg-[#121212] hover:bg-amber-500 border border-white/15 hover:border-amber-500 hover:text-black hover:font-bold py-2.5 rounded-xl text-[11px] font-medium text-stone-200 transition-all font-mono"
+                      >
+                        Register Wrapping Box Option
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                <div className="border border-dashed border-white/5 bg-[#0a0a0a]/50 rounded-xl p-8 text-center text-stone-500 flex flex-col items-center justify-center space-y-2">
+                  <p className="text-xs font-serif italic text-stone-400">
+                    "Luxury Wrapping & Boutique Packaging services currently turned OFF."
+                  </p>
+                  <p className="text-[10px] max-w-sm text-stone-500 leading-relaxed font-sans">
+                    Enable the Wrapping Service toggle above to unlock customer-side box checkboxes, prices, and customizable variant catalogs.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-amber-500/5 p-4 rounded-xl border border-amber-500/10 text-left">

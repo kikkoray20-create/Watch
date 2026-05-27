@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Star, Shield, Award, HelpCircle, ShoppingBag, Landmark, Truck, RefreshCcw, Heart, Send } from 'lucide-react';
+import { ArrowLeft, Star, Shield, Award, HelpCircle, ShoppingBag, Landmark, Truck, RefreshCcw, Heart, Send, CreditCard } from 'lucide-react';
 import { WatchModel } from '../types';
 import { products } from '../data/products';
 
@@ -7,6 +7,7 @@ interface WatchPageProps {
   watch: WatchModel;
   onBack: () => void;
   onAddToCart: (watch: WatchModel) => void;
+  onBuyNow?: (watch: WatchModel) => void;
   onSelectAnotherWatch: (watch: WatchModel) => void;
   warrantyActive?: boolean;
   catalog?: WatchModel[];
@@ -25,6 +26,7 @@ export default function WatchPage({
   watch,
   onBack,
   onAddToCart,
+  onBuyNow,
   onSelectAnotherWatch,
   warrantyActive = true,
   catalog,
@@ -253,14 +255,23 @@ export default function WatchPage({
             </div>
 
             {/* Adding action button to directly authorize cart items loading */}
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => onAddToCart(watch)}
-                className="w-full bg-white hover:bg-amber-500 text-black py-2 px-4 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-all duration-300 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)] flex items-center justify-center space-x-2 cursor-pointer"
+                className="flex-1 bg-stone-900 hover:bg-stone-800 text-white border border-white/10 py-3.5 px-4 rounded-xl text-xs font-mono font-bold tracking-widest uppercase transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer select-none"
                 id={`add-to-cart-page-${watch.id}`}
               >
                 <ShoppingBag className="h-4 w-4" />
                 <span>ADD TO CART</span>
+              </button>
+
+              <button
+                onClick={() => onBuyNow && onBuyNow(watch)}
+                className="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3.5 px-4 rounded-xl text-xs font-mono font-bold tracking-widest uppercase transition-all duration-300 hover:shadow-[0_0_15px_rgba(245,158,11,0.35)] flex items-center justify-center space-x-2 cursor-pointer select-none"
+                id={`buy-now-page-${watch.id}`}
+              >
+                <CreditCard className="h-4 w-4" />
+                <span>BUY NOW</span>
               </button>
             </div>
 
