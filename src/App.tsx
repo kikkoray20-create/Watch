@@ -256,6 +256,23 @@ export default function App() {
     const setupOrdersListener = () => {
       if (configDiagnostics.isUsingFallback) {
         // Run purely in local storage fallback mode
+        const saved = localStorage.getItem('chronos_orders');
+        if (saved) {
+          const allOrders: CompactOrder[] = JSON.parse(saved);
+          if (currentUser?.isAdmin) {
+            // Master/Admin sees all orders
+            setOrders(allOrders);
+          } else if (currentUser?.isLoggedIn && currentUser.email) {
+            // User sees their personal orders
+            const filtered = allOrders.filter(
+              (ord) => ord.shippingDetails?.email === currentUser.email
+            );
+            setOrders(filtered);
+          } else {
+            // When logged out, let's keep all or empty? Let's display all so logged-out viewers see seed orders
+            setOrders(allOrders);
+          }
+        }
         return;
       }
       try {
@@ -289,7 +306,17 @@ export default function App() {
           // Graceful fallback to local orders on listener permission or connection error
           const saved = localStorage.getItem('chronos_orders');
           if (saved) {
-            setOrders(JSON.parse(saved));
+            const allOrdersIndex: CompactOrder[] = JSON.parse(saved);
+            if (currentUser?.isAdmin) {
+              setOrders(allOrdersIndex);
+            } else if (currentUser?.isLoggedIn && currentUser.email) {
+              const filtered = allOrdersIndex.filter(
+                (ord) => ord.shippingDetails?.email === currentUser.email
+              );
+              setOrders(filtered);
+            } else {
+              setOrders(allOrdersIndex);
+            }
           }
         });
       } catch (err) {
@@ -391,11 +418,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('chronos_settings', JSON.stringify(boutiqueSettings));
   }, [boutiqueSettings]);
-
-  // Sync custom placed order logs to local storage
-  useEffect(() => {
-    localStorage.setItem('chronos_orders', JSON.stringify(orders));
-  }, [orders]);
 
   // Trigger floating alert banners
   const triggerNotification = (message: string) => {
@@ -500,6 +522,16 @@ export default function App() {
     };
     saveOrderToFirestore();
 
+    // Directly append order to master database in local storage
+    try {
+      const saved = localStorage.getItem('chronos_orders');
+      const existingOrders = saved ? JSON.parse(saved) : [];
+      const cleaned = existingOrders.filter((o: CompactOrder) => o.id !== newOrder.id);
+      localStorage.setItem('chronos_orders', JSON.stringify([newOrder, ...cleaned]));
+    } catch (e) {
+      console.error('Error syncing order to local storage master index:', e);
+    }
+
     setOrders((prev) => [newOrder, ...prev]);
 
     // Update active registered member tier / award points
@@ -586,6 +618,18 @@ export default function App() {
       prev.map((ord) => (ord.id === orderId ? { ...ord, status } : ord))
     );
 
+    // Sync status change directly to local storage master index
+    try {
+      const saved = localStorage.getItem('chronos_orders');
+      if (saved) {
+        const allOrders: CompactOrder[] = JSON.parse(saved);
+        const updated = allOrders.map((ord) => ord.id === orderId ? { ...ord, status } : ord);
+        localStorage.setItem('chronos_orders', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error('Error updating order status in local storage master index:', e);
+    }
+
     try {
       const docRef = doc(db, 'orders', orderId);
       const docSnap = await getDoc(docRef);
@@ -606,6 +650,18 @@ export default function App() {
   const handleRemoveOrder = async (orderId: string) => {
     if (confirm(`Are you sure you want to remove order ${orderId}?`)) {
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+      // Sync removal directly to local storage master index
+      try {
+        const saved = localStorage.getItem('chronos_orders');
+        if (saved) {
+          const allOrders: CompactOrder[] = JSON.parse(saved);
+          const filtered = allOrders.filter((ord) => ord.id !== orderId);
+          localStorage.setItem('chronos_orders', JSON.stringify(filtered));
+        }
+      } catch (e) {
+        console.error('Error removing order from local storage master index:', e);
+      }
       try {
         await deleteDoc(doc(db, 'orders', orderId));
         triggerNotification(`Order ${orderId} removed from Cloud Database.`);
@@ -641,6 +697,15 @@ export default function App() {
 
     setOrders((prev) => [testOrder, ...prev]);
 
+    // Prepend order directly to local storage master index
+    try {
+      const saved = localStorage.getItem('chronos_orders');
+      const existingOrders = saved ? JSON.parse(saved) : [];
+      localStorage.setItem('chronos_orders', JSON.stringify([testOrder, ...existingOrders]));
+    } catch (e) {
+      console.error('Error simulating order to local storage master index:', e);
+    }
+
     try {
       await setDoc(doc(db, 'orders', testOrder.id), testOrder);
       triggerNotification(`Simulated live purchase for ${testOrder.id} saved in Firestore.`);
@@ -658,6 +723,7 @@ export default function App() {
           await deleteDoc(doc(db, 'orders', docSnap.id));
         }
         setOrders([]);
+        localStorage.setItem('chronos_orders', JSON.stringify([]));
         triggerNotification('Dispatch tracking logs wiped from Firestore database.');
       } catch (e) {
         handleFirestoreError(e, OperationType.DELETE, 'orders');
