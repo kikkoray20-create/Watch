@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CreditCard, ChevronRight, CheckCircle2, Terminal, RefreshCw, Send, Loader2 } from 'lucide-react';
+import { X, CreditCard, ChevronRight, CheckCircle2, Terminal, RefreshCw, Send, Loader2, Eye, EyeOff } from 'lucide-react';
 import { CartItem, CheckoutDetails, WebhookLog, UserProfile, GiftBoxOption } from '../types';
 
 interface CheckoutModalProps {
@@ -13,6 +13,8 @@ interface CheckoutModalProps {
   onOrderCompleted: (details: CheckoutDetails, generatedLogs: WebhookLog[]) => void;
   user: UserProfile | null;
   onLogin: (email: string, fullName: string, password?: string, isSignUp?: boolean) => Promise<void>;
+  freeShippingEnabled?: boolean;
+  freeShippingThreshold?: number;
 }
 
 export default function CheckoutModal({
@@ -26,6 +28,8 @@ export default function CheckoutModal({
   onOrderCompleted,
   user,
   onLogin,
+  freeShippingEnabled = true,
+  freeShippingThreshold = 400000,
 }: CheckoutModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -52,6 +56,7 @@ export default function CheckoutModal({
   const [authFullName, setAuthFullName] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -72,7 +77,9 @@ export default function CheckoutModal({
   const selectedBox = giftBoxOptions.find(b => b.id === selectedGiftBoxId) || giftBoxOptions[0];
   const giftWrappingCost = giftWrapping && selectedBox ? selectedBox.price : 0;
   
-  const shippingCost = subtotal > 400000 || subtotal === 0 ? 0.00 : 12500.00;
+  const isFreeShippingAvailable = freeShippingEnabled !== false;
+  const threshold = freeShippingThreshold !== undefined ? freeShippingThreshold : 400000;
+  const shippingCost = (isFreeShippingAvailable && subtotal > threshold) || subtotal === 0 ? 0.00 : 12500.00;
   const totalAmount = subtotal - discountAmount + giftWrappingCost + shippingCost;
 
   // Simple handlers
@@ -324,13 +331,6 @@ export default function CheckoutModal({
                   <div className="pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <button
                       type="button"
-                      onClick={handleAutoFill}
-                      className="text-[10px] font-mono text-stone-400 hover:text-white underline cursor-pointer"
-                    >
-                      ⚡ Auto-Fill Demo Data
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setStep(2)}
                       className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-black font-semibold px-8 py-3 rounded-lg text-xs font-mono tracking-wider uppercase transition-all hover:scale-[1.02] cursor-pointer"
                     >
@@ -396,25 +396,27 @@ export default function CheckoutModal({
                       </div>
                       <div>
                         <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">Password</label>
-                        <input
-                          type="password"
-                          placeholder="••••••••••••••"
-                          value={authPassword}
-                          onChange={(e) => setAuthPassword(e.target.value)}
-                          className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showAuthPassword ? 'text' : 'password'}
+                            placeholder="••••••••••••••"
+                            value={authPassword}
+                            onChange={(e) => setAuthPassword(e.target.value)}
+                            className="w-full pl-3 pr-10 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAuthPassword(!showAuthPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white transition-colors cursor-pointer select-none focus:outline-none"
+                            title={showAuthPassword ? 'Hide Password' : 'Show Password'}
+                          >
+                            {showAuthPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-2">
-                      <button
-                        type="button"
-                        onClick={handleAutoFill}
-                        className="text-[10px] font-mono text-stone-400 hover:text-white underline cursor-pointer"
-                      >
-                        ⚡ Use Demo Profile
-                      </button>
-                      
+                    <div className="flex justify-between items-center pt-2">                
                       <button
                         type="submit"
                         disabled={authLoading}

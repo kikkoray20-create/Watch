@@ -45,6 +45,8 @@ export default function App() {
       return {
         giftWrappingEnabled: true,
         giftBoxOptions: defaultOpts,
+        freeShippingEnabled: true,
+        freeShippingThreshold: 400000,
         ...parsed
       };
     }
@@ -58,6 +60,8 @@ export default function App() {
       warrantyActive: true,
       giftWrappingEnabled: true,
       giftBoxOptions: defaultOpts,
+      freeShippingEnabled: true,
+      freeShippingThreshold: 400000,
     };
   });
 
@@ -89,36 +93,7 @@ export default function App() {
   const [users, setUsers] = useState<UserProfile[]>([]);
 
   // Trackable Order History mapping
-  const [orders, setOrders] = useState<CompactOrder[]>(() => {
-    const saved = localStorage.getItem('chronos_orders');
-    if (saved) return JSON.parse(saved);
-    return [
-      {
-        id: 'GID-ORDER-3829',
-        date: '2026-05-18',
-        total: 203350,
-        items: [
-          {
-            watch: products[0],
-            quantity: 1,
-          }
-        ],
-        shippingDetails: {
-          fullName: 'Alexandre Horologue',
-          email: '9876543215',
-          address: '742 Chronograph Avenue',
-          city: 'Geneva',
-          postalCode: '1201',
-          country: 'Switzerland',
-          shippingMethod: 'air_priority',
-          giftWrapping: true,
-          discountCode: 'SHOPIFY20',
-        } as any,
-        status: 'shipped',
-        trackingNumber: 'LP-839210-CH',
-      }
-    ];
-  });
+  const [orders, setOrders] = useState<CompactOrder[]>([]);
 
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
@@ -496,7 +471,9 @@ export default function App() {
     const selectedBox = giftBoxOpts.find(b => b.id === selectedGiftBoxId);
     const giftWrappingCost = isGiftWrapSelected && selectedBox ? selectedBox.price : 0;
     
-    const shippingCost = subtotal > 400000 || subtotal === 0 ? 0 : 12500;
+    const isFreeShippingAvailable = boutiqueSettings.freeShippingEnabled !== false;
+    const threshold = boutiqueSettings.freeShippingThreshold !== undefined ? boutiqueSettings.freeShippingThreshold : 400000;
+    const shippingCost = (isFreeShippingAvailable && subtotal > threshold) || subtotal === 0 ? 0 : 12500;
     const totalAmount = subtotal - discountAmount + giftWrappingCost + shippingCost;
 
     const orderNumber = Math.floor(1000 + Math.random() * 9000);
@@ -672,49 +649,6 @@ export default function App() {
     }
   };
 
-  const handleAddOrderSimulation = async () => {
-    const rId = Math.floor(1000 + Math.random() * 9000);
-    const rItem = catalog[Math.floor(Math.random() * catalog.length)] || products[0];
-    const testOrder: CompactOrder = {
-      id: `GID-ORDER-${rId}`,
-      date: new Date().toISOString().split('T')[0],
-      total: rItem.price,
-      items: [{ watch: rItem, quantity: 1 }],
-      shippingDetails: {
-        fullName: 'Victoria Pendelton',
-        email: 'victoria.pendelton@collector-perks.com',
-        address: '902 Royal Crest Way',
-        city: 'Mumbai',
-        postalCode: '400001',
-        country: 'India',
-        shippingMethod: 'air_priority',
-        giftWrapping: true,
-        discountCode: 'MASTERDASH',
-      } as any,
-      status: 'confirmed',
-      trackingNumber: `LP-${Math.floor(100000 + Math.random() * 900000)}-CH`,
-    };
-
-    setOrders((prev) => [testOrder, ...prev]);
-
-    // Prepend order directly to local storage master index
-    try {
-      const saved = localStorage.getItem('chronos_orders');
-      const existingOrders = saved ? JSON.parse(saved) : [];
-      localStorage.setItem('chronos_orders', JSON.stringify([testOrder, ...existingOrders]));
-    } catch (e) {
-      console.error('Error simulating order to local storage master index:', e);
-    }
-
-    try {
-      await setDoc(doc(db, 'orders', testOrder.id), testOrder);
-      triggerNotification(`Simulated live purchase for ${testOrder.id} saved in Firestore.`);
-    } catch (e) {
-      handleFirestoreError(e, OperationType.WRITE, `orders/${testOrder.id}`);
-      triggerNotification(`Simulated purchase registered offline in current session.`);
-    }
-  };
-
   const handleClearOrders = async () => {
     if (confirm('Clear all historical tracked order records?')) {
       try {
@@ -780,46 +714,6 @@ export default function App() {
     } catch (e) {
       console.error(e);
       triggerNotification(`Failed to remove: ${(e as Error).message}`);
-    }
-  };
-
-  const handleAddUserSimulation = async () => {
-    const names = ['Aryan Sharma', 'Priya Patel', 'Rohan Das', 'Ananya Gupta', 'Kabir Malhotra', 'Elena Rostova', 'Jean-Paul Gautier'];
-    const domains = ['luxury-gems.com', 'collector-guild.org', 'heritage-mail.com', 'horizon-vault.io'];
-    const randomName = names[Math.floor(Math.random() * names.length)];
-    const randomEmail = `${randomName.toLowerCase().replace(/\s+/g, '.')}@${domains[Math.floor(Math.random() * domains.length)]}`;
-    const tiers: UserProfile['memberTier'][] = ['Loyal Collector', 'Vanguard', 'Grand Sovereign'];
-    const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
-    const points = Math.floor(Math.random() * 250);
-
-    const simUser: UserProfile = {
-      email: randomEmail,
-      fullName: randomName,
-      isLoggedIn: false,
-      memberTier: randomTier,
-      loyaltyPoints: points,
-    };
-
-    try {
-      const userIdKey = randomEmail.replace(/[.@]/g, '_');
-      
-      setUsers((prev) => [simUser, ...prev]);
-
-      const localUsersStr = localStorage.getItem('boutique_users') || '{}';
-      let localUsers: Record<string, any> = {};
-      try { localUsers = JSON.parse(localUsersStr); } catch (err) {}
-      localUsers[randomEmail] = {
-        ...simUser,
-        password: '123'
-      };
-      localStorage.setItem('boutique_users', JSON.stringify(localUsers));
-
-      if (!configDiagnostics.isUsingFallback) {
-        await setDoc(doc(db, 'users', userIdKey), simUser);
-      }
-      triggerNotification(`Simulated registration for ${randomName} synchronized!`);
-    } catch (e) {
-      console.error(e);
     }
   };
 
@@ -1094,7 +988,6 @@ export default function App() {
             orders={orders}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onRemoveOrder={handleRemoveOrder}
-            onAddOrderSimulation={handleAddOrderSimulation}
             onClearOrders={handleClearOrders}
             settings={boutiqueSettings}
             onUpdateSettings={handleUpdateSettings}
@@ -1103,7 +996,6 @@ export default function App() {
             users={users}
             onUpdateUser={handleUpdateUserProfile}
             onRemoveUser={handleRemoveUserProfile}
-            onAddUserSimulation={handleAddUserSimulation}
           />
         ) : activeWatchPage ? (
           <WatchPage
@@ -1291,6 +1183,8 @@ export default function App() {
         ]}
         selectedGiftBoxId={selectedGiftBoxId}
         onSelectGiftBox={setSelectedGiftBoxId}
+        freeShippingEnabled={boutiqueSettings.freeShippingEnabled !== false}
+        freeShippingThreshold={boutiqueSettings.freeShippingThreshold !== undefined ? boutiqueSettings.freeShippingThreshold : 400000}
       />
 
       {/* Checkout Payment Wizard */}
@@ -1307,6 +1201,8 @@ export default function App() {
         onOrderCompleted={handleOrderCompleted}
         user={currentUser}
         onLogin={handleLoginUser}
+        freeShippingEnabled={boutiqueSettings.freeShippingEnabled !== false}
+        freeShippingThreshold={boutiqueSettings.freeShippingThreshold !== undefined ? boutiqueSettings.freeShippingThreshold : 400000}
       />
 
       <LoginModal

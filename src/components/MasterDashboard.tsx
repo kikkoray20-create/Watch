@@ -27,6 +27,7 @@ import {
   Star
 } from 'lucide-react';
 import { WatchModel, CompactOrder, BoutiqueSettings, UserProfile } from '../types';
+import InvoiceModal from './InvoiceModal';
 
 interface MasterDashboardProps {
   catalog: WatchModel[];
@@ -34,7 +35,6 @@ interface MasterDashboardProps {
   orders: CompactOrder[];
   onUpdateOrderStatus: (orderId: string, status: CompactOrder['status']) => void;
   onRemoveOrder: (orderId: string) => void;
-  onAddOrderSimulation: () => void;
   onClearOrders: () => void;
   settings: BoutiqueSettings;
   onUpdateSettings: (newSettings: BoutiqueSettings) => void;
@@ -43,7 +43,6 @@ interface MasterDashboardProps {
   users?: UserProfile[];
   onUpdateUser?: (updatedUser: UserProfile) => Promise<void>;
   onRemoveUser?: (email: string) => Promise<void>;
-  onAddUserSimulation?: () => Promise<void>;
 }
 
 export default function MasterDashboard({
@@ -52,7 +51,6 @@ export default function MasterDashboard({
   orders,
   onUpdateOrderStatus,
   onRemoveOrder,
-  onAddOrderSimulation,
   onClearOrders,
   settings,
   onUpdateSettings,
@@ -61,9 +59,9 @@ export default function MasterDashboard({
   users = [],
   onUpdateUser,
   onRemoveUser,
-  onAddUserSimulation,
 }: MasterDashboardProps) {
   const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customers' | 'customizer'>('catalog');
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<CompactOrder | null>(null);
   
   // Settings Drafts for Boutique customizer
   const [draftSettings, setDraftSettings] = useState<BoutiqueSettings>({ ...settings });
@@ -75,6 +73,7 @@ export default function MasterDashboard({
 
   // Customer Management States
   const [customerSearch, setCustomerSearch] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
   const [showRegularOnly, setShowRegularOnly] = useState(false);
   const [expandedCustomerEmail, setExpandedCustomerEmail] = useState<string | null>(null);
   
@@ -758,9 +757,23 @@ export default function MasterDashboard({
                   Update customer shipping dispatch states.
                 </p>
               </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-stone-600" />
+                <input
+                  type="text"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  placeholder="Search orders (ID, Name, Email)..."
+                  className="pl-9 pr-4 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 w-full sm:w-64"
+                />
+              </div>
             </div>
 
-            {orders.length === 0 ? (
+            {orders.filter(o => 
+                o.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                o.shippingDetails?.fullName?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                o.shippingDetails?.email?.toLowerCase().includes(orderSearch.toLowerCase())
+            ).length === 0 ? (
               <div className="py-16 text-center border border-dashed border-white/5 rounded-2xl space-y-3">
                 <Package className="h-8 w-8 text-stone-600 mx-auto" />
                 <h4 className="text-white text-xs font-semibold">No order files detected</h4>
@@ -770,7 +783,11 @@ export default function MasterDashboard({
               </div>
             ) : (
               <div className="space-y-4 text-left">
-                {orders.map((order) => (
+                {orders.filter(o => 
+                    o.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                    o.shippingDetails?.fullName?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                    o.shippingDetails?.email?.toLowerCase().includes(orderSearch.toLowerCase())
+                ).map((order) => (
                   <div key={order.id} className="border border-white/5 bg-[#121212]/30 rounded-2xl p-5 space-y-4">
                     
                     {/* Header info bar */}
@@ -797,14 +814,24 @@ export default function MasterDashboard({
                       </div>
 
                       <div className="text-left sm:text-right">
-                        <span className="text-[9px] text-rose-500 uppercase font-bold tracking-wider block">MANAGEMENT ACTION</span>
-                        <button
-                          onClick={() => onRemoveOrder(order.id)}
-                          className="mt-1 bg-rose-950/20 border border-rose-900/40 text-rose-400 hover:bg-rose-900 hover:text-white hover:border-rose-900 text-[10.5px] font-mono font-bold tracking-widest px-2.5 py-1 rounded uppercase cursor-pointer transition-colors flex items-center space-x-1"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          <span>Remove Order</span>
-                        </button>
+                        <span className="text-[9px] text-[#999999] uppercase font-bold tracking-wider block">MANAGEMENT ACTION</span>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:justify-end">
+                          <button
+                            onClick={() => setSelectedInvoiceOrder(order)}
+                            className="bg-amber-600/10 border border-amber-500/30 text-amber-500 hover:bg-amber-600 hover:text-white hover:border-amber-600 text-[10.5px] font-mono font-bold tracking-widest px-2.5 py-1 rounded uppercase cursor-pointer transition-colors flex items-center space-x-1"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            <span>View Invoice</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => onRemoveOrder(order.id)}
+                            className="bg-rose-950/20 border border-rose-900/40 text-rose-400 hover:bg-rose-900 hover:text-white hover:border-rose-900 text-[10.5px] font-mono font-bold tracking-widest px-2.5 py-1 rounded uppercase cursor-pointer transition-colors flex items-center space-x-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>Remove Order</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -899,15 +926,6 @@ export default function MasterDashboard({
               </div>
 
               <div className="flex items-center space-x-2.5">
-                {onAddUserSimulation && (
-                  <button
-                    onClick={() => onAddUserSimulation()}
-                    className="bg-purple-650/10 border border-purple-500/20 hover:bg-purple-500 hover:text-black hover:border-purple-500 text-purple-400 px-3.5 py-1.5 rounded-lg text-[11px] font-mono transition-all font-bold uppercase flex items-center space-x-1.5 cursor-pointer"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>Simulate Client Sign-Up</span>
-                  </button>
-                )}
               </div>
             </div>
 
@@ -966,7 +984,7 @@ export default function MasterDashboard({
                     <User className="h-8 w-8 text-stone-600 mx-auto" />
                     <h4 className="text-white text-xs font-semibold">No registered client matches</h4>
                     <p className="text-stone-400 text-[11px] max-w-xs mx-auto">
-                      Adjust your queries or tap Simulate Client Sign-Up to instantly populate mock accounts!
+                      Adjust your queries to find registered clients.
                     </p>
                   </div>
                 );
@@ -1337,6 +1355,38 @@ export default function MasterDashboard({
                   </div>
                 </div>
 
+                <div className="space-y-1 pt-2 border-t border-white/5">
+                  <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Free Insured Shipping Milestone</label>
+                  <div className="flex items-center space-x-2 pt-1 font-mono text-stone-300">
+                    <button
+                      type="button"
+                      onClick={() => handleSettingChange('freeShippingEnabled', draftSettings.freeShippingEnabled !== false ? false : true)}
+                      className="text-amber-500 cursor-pointer focus:outline-none"
+                    >
+                      {draftSettings.freeShippingEnabled !== false ? (
+                        <ToggleRight className="h-8 w-8 text-amber-500" />
+                      ) : (
+                        <ToggleLeft className="h-8 w-8 text-stone-600" />
+                      )}
+                    </button>
+                    <span className="text-[10px]">
+                      {draftSettings.freeShippingEnabled !== false ? 'ENABLED: Show milestone bar inside customer satchel' : 'DISABLED: Hide/Remove shipping milestone bar from customer satchel'}
+                    </span>
+                  </div>
+                </div>
+
+                {draftSettings.freeShippingEnabled !== false && (
+                  <div className="space-y-1 animate-fade-in">
+                    <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Free Shipping Threshold Target (₹)</label>
+                    <input
+                      type="number"
+                      value={draftSettings.freeShippingThreshold !== undefined ? draftSettings.freeShippingThreshold : 400000}
+                      onChange={(e) => handleSettingChange('freeShippingThreshold', Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                    />
+                  </div>
+                )}
+
               </div>
 
               {/* Hero Banner text configurations */}
@@ -1546,6 +1596,14 @@ export default function MasterDashboard({
         )}
 
       </div>
+
+      {selectedInvoiceOrder && (
+        <InvoiceModal
+          order={selectedInvoiceOrder}
+          onClose={() => setSelectedInvoiceOrder(null)}
+          settings={settings}
+        />
+      )}
 
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Lock, Award, Shield, Truck, Package, Search, LogOut, Loader2, Sparkles, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { X, User, Lock, Award, Shield, Truck, Package, Search, LogOut, Loader2, Sparkles, CheckCircle, Clock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { UserProfile, CompactOrder } from '../types';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -71,20 +71,6 @@ export default function LoginModal({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleAutocompleteDemo = () => {
-    setEmail('9876543215');
-    setPassword('•••••••••');
-    setFullName('Alexandre Horologue');
-    setIsRegistering(false);
-  };
-
-  const handleLoadAdminDemo = () => {
-    setEmail('admin@chronos.com');
-    setPassword('123');
-    setFullName('Master Horologist');
-    setIsRegistering(false);
   };
 
   const handleSearchTracking = async (e: React.FormEvent) => {
@@ -271,83 +257,85 @@ export default function LoginModal({
               </div>
 
               {/* Active Subscribed Orders Tracking Subsection */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                  <h4 className="font-serif text-lg font-semibold text-white flex items-center space-x-2">
-                    <Package className="h-4.5 w-4.5 text-amber-500" />
-                    <span>Your Order History & Tracking Details</span>
-                  </h4>
-                  <span className="text-[10px] font-mono text-amber-500 tracking-wider">
-                    {orders.length} Verified Order(s)
-                  </span>
-                </div>
-
-                {orders.length === 0 ? (
-                  <div className="py-12 border border-dashed border-white/5 rounded-2xl text-center space-y-2.5 max-w-md mx-auto">
-                    <Clock className="h-8 w-8 text-stone-605 mx-auto animate-pulse" />
-                    <h5 className="text-white text-xs font-semibold">No active orders located</h5>
-                    <p className="text-stone-550 text-[11px] leading-relaxed max-w-xs mx-auto">
-                      Any luxury allocations purchased via our secure checkouts will be compiled right here automatically.
-                    </p>
+              {!user?.isAdmin && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <h4 className="font-serif text-lg font-semibold text-white flex items-center space-x-2">
+                      <Package className="h-4.5 w-4.5 text-amber-500" />
+                      <span>Your Order History & Tracking Details</span>
+                    </h4>
+                    <span className="text-[10px] font-mono text-amber-500 tracking-wider">
+                      {orders.length} Verified Order(s)
+                    </span>
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {orders.map((ord) => (
-                      <div key={ord.id} className="border border-white/5 bg-[#121212]/30 rounded-2xl p-5 space-y-5">
-                        
-                        {/* Order info description top level metadata row */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-white/5 pb-3">
-                          <div>
-                            <span className="text-[9px] font-mono text-stone-500 uppercase block">IDENTIFIER • TRACKING</span>
-                            <div className="flex items-center space-x-2 mt-0.5 font-mono text-xs text-stone-200">
-                              <span className="font-bold text-white">{ord.id}</span>
-                              <span className="text-stone-600">|</span>
-                              <span className="text-amber-550">{ord.trackingNumber}</span>
+
+                  {orders.length === 0 ? (
+                    <div className="py-12 border border-dashed border-white/5 rounded-2xl text-center space-y-2.5 max-w-md mx-auto">
+                      <Clock className="h-8 w-8 text-stone-605 mx-auto animate-pulse" />
+                      <h5 className="text-white text-xs font-semibold">No active orders located</h5>
+                      <p className="text-stone-550 text-[11px] leading-relaxed max-w-xs mx-auto">
+                        Any luxury allocations purchased via our secure checkouts will be compiled right here automatically.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {orders.map((ord) => (
+                        <div key={ord.id} className="border border-white/5 bg-[#121212]/30 rounded-2xl p-5 space-y-5">
+                          
+                          {/* Order info description top level metadata row */}
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-white/5 pb-3">
+                            <div>
+                              <span className="text-[9px] font-mono text-stone-500 uppercase block">IDENTIFIER • TRACKING</span>
+                              <div className="flex items-center space-x-2 mt-0.5 font-mono text-xs text-stone-200">
+                                <span className="font-bold text-white">{ord.id}</span>
+                                <span className="text-stone-600">|</span>
+                                <span className="text-amber-550">{ord.trackingNumber}</span>
+                              </div>
+                            </div>
+
+                            <div className="text-right sm:text-right">
+                              <span className="text-[9px] font-mono text-stone-500 uppercase block">TOTAL AMOUNT</span>
+                              <span className="text-xs font-mono font-bold text-white">
+                                ₹{ord.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
                             </div>
                           </div>
 
-                          <div className="text-right sm:text-right">
-                            <span className="text-[9px] font-mono text-stone-500 uppercase block">TOTAL AMOUNT</span>
-                            <span className="text-xs font-mono font-bold text-white">
-                              ₹{ord.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          {/* Order Timeline Visual Stage */}
+                          {renderTrackingTimeline(ord)}
+
+                          {/* List of ordered Line Items in this order */}
+                          <div className="space-y-2.5">
+                            <span className="text-[10px] font-mono text-stone-500 uppercase block tracking-widest">
+                              ALLOCATED TIMEPIECES
                             </span>
-                          </div>
-                        </div>
-
-                        {/* Order Timeline Visual Stage */}
-                        {renderTrackingTimeline(ord)}
-
-                        {/* List of ordered Line Items in this order */}
-                        <div className="space-y-2.5">
-                          <span className="text-[10px] font-mono text-stone-500 uppercase block tracking-widest">
-                            ALLOCATED TIMEPIECES
-                          </span>
-                          <div className="grid grid-cols-1 gap-2">
-                            {ord.items.map((lineItem) => (
-                              <div key={lineItem.watch.id} className="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5">
-                                <div className="flex items-center space-x-3">
-                                  <div className="h-10 w-10 bg-[#121212] rounded-lg p-1 flex items-center justify-center shrink-0">
-                                    <img src={lineItem.watch.imageUrl} alt={lineItem.watch.name} referrerPolicy="no-referrer" className="max-h-full max-w-full object-contain" />
+                            <div className="grid grid-cols-1 gap-2">
+                              {ord.items.map((lineItem) => (
+                                <div key={lineItem.watch.id} className="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="h-10 w-10 bg-[#121212] rounded-lg p-1 flex items-center justify-center shrink-0">
+                                      <img src={lineItem.watch.imageUrl} alt={lineItem.watch.name} referrerPolicy="no-referrer" className="max-h-full max-w-full object-contain" />
+                                    </div>
+                                    <div>
+                                      <h5 className="text-xs font-serif font-semibold text-white line-clamp-1">{lineItem.watch.name}</h5>
+                                      <span className="text-[9px] font-mono text-stone-500">{lineItem.watch.brand}</span>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <h5 className="text-xs font-serif font-semibold text-white line-clamp-1">{lineItem.watch.name}</h5>
-                                    <span className="text-[9px] font-mono text-stone-500">{lineItem.watch.brand}</span>
+                                  <div className="text-right font-mono text-xs">
+                                    <span className="text-stone-400">Qty: {lineItem.quantity}</span>
                                   </div>
                                 </div>
-                                <div className="text-right font-mono text-xs">
-                                  <span className="text-stone-400">Qty: {lineItem.quantity}</span>
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
+
                         </div>
+                      ))}
+                    </div>
+                  )}
 
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-              </div>
+                </div>
+              )}
 
               {/* Logout Action Bar strip */}
               <div className="pt-6 border-t border-white/5 flex justify-between items-center">
@@ -420,24 +408,25 @@ export default function LoginModal({
                   </div>
 
                   <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-[10px] font-mono uppercase text-stone-455">Privacy Password</label>
+                    <label className="text-[10px] font-mono uppercase text-stone-455 block mb-1">Privacy Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••••••••"
+                        className="w-full pl-3 pr-10 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                      />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-[9px] font-mono text-amber-500 hover:text-amber-400 transition-colors uppercase tracking-widest select-none focus:outline-none cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white transition-colors cursor-pointer select-none focus:outline-none"
+                        title={showPassword ? 'Hide Password' : 'Show Password'}
                       >
-                        {showPassword ? 'Hide Password' : 'Show Password'}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••••"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                    />
                   </div>
 
                   <button

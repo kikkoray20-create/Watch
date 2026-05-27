@@ -92,6 +92,8 @@ export interface BoutiqueSettings {
   warrantyActive: boolean;
   giftWrappingEnabled?: boolean;
   giftBoxOptions?: GiftBoxOption[];
+  freeShippingEnabled?: boolean;
+  freeShippingThreshold?: number;
 }
 
 export interface CompactOrder {

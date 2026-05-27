@@ -15,6 +15,8 @@ interface CartDrawerProps {
   giftBoxOptions?: GiftBoxOption[];
   selectedGiftBoxId?: string;
   onSelectGiftBox?: (id: string) => void;
+  freeShippingEnabled?: boolean;
+  freeShippingThreshold?: number;
 }
 
 export default function CartDrawer({
@@ -30,6 +32,8 @@ export default function CartDrawer({
   giftBoxOptions = [],
   selectedGiftBoxId = 'leather',
   onSelectGiftBox,
+  freeShippingEnabled = true,
+  freeShippingThreshold = 400000,
 }: CartDrawerProps) {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; percent: number } | null>(null);
@@ -41,7 +45,8 @@ export default function CartDrawer({
 
   // Calculation parameters
   const subtotal = cart.reduce((acc, item) => acc + item.watch.price * item.quantity, 0);
-  const FREE_SHIPPING_THRESHOLD = 400000;
+  const FREE_SHIPPING_THRESHOLD = freeShippingThreshold;
+  const isFreeShippingAvailable = freeShippingEnabled !== false;
   
   // Discount
   const discountAmount = appliedPromo ? (subtotal * appliedPromo.percent) / 100 : 0;
@@ -52,7 +57,7 @@ export default function CartDrawer({
   const giftWrappingCost = giftWrapping && selectedBox ? selectedBox.price : 0;
   
   // Shipping
-  const shippingCost = subtotal > FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0.00 : 12500.00;
+  const shippingCost = (isFreeShippingAvailable && subtotal > FREE_SHIPPING_THRESHOLD) || subtotal === 0 ? 0.00 : 12500.00;
   
   const estimatedTotal = subtotal - discountAmount + giftWrappingCost + shippingCost;
 
@@ -106,7 +111,7 @@ export default function CartDrawer({
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             
             {/* Free Shipping Progress bar */}
-            {subtotal > 0 && (
+            {subtotal > 0 && isFreeShippingAvailable && (
               <div className="bg-[#121212] p-3.5 rounded-xl border border-white/5">
                 <div className="flex justify-between items-center mb-1.5 text-xs">
                   <span className="font-medium text-stone-300">
