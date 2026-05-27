@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, CreditCard, ChevronRight, CheckCircle2, Terminal, RefreshCw, Send, Loader2 } from 'lucide-react';
-import { CartItem, CheckoutDetails, WebhookLog } from '../types';
+import { CartItem, CheckoutDetails, WebhookLog, UserProfile } from '../types';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -9,6 +9,8 @@ interface CheckoutModalProps {
   appliedPromo: { code: string; percent: number } | null;
   giftWrapping: boolean;
   onOrderCompleted: (details: CheckoutDetails, generatedLogs: WebhookLog[]) => void;
+  user: UserProfile | null;
+  onLogin: (email: string, fullName: string, password?: string, isSignUp?: boolean) => Promise<void>;
 }
 
 export default function CheckoutModal({
@@ -18,6 +20,8 @@ export default function CheckoutModal({
   appliedPromo,
   giftWrapping,
   onOrderCompleted,
+  user,
+  onLogin,
 }: CheckoutModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,6 +41,24 @@ export default function CheckoutModal({
     cvv: '',
   });
 
+  // Inline auth states for checkout gateway
+  const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authFullName, setAuthFullName] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: user.fullName,
+        email: user.email,
+      }));
+    }
+  }, [user]);
+
   if (!isOpen) return null;
 
   // Calculative indices
@@ -52,12 +74,36 @@ export default function CheckoutModal({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleInlineAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      if (authTab === 'signup' && !authFullName.trim()) {
+        throw new Error('Please enter your full name to enroll.');
+      }
+      await onLogin(
+        authEmail,
+        authTab === 'signup' ? authFullName : '',
+        authPassword,
+        authTab === 'signup'
+      );
+      setAuthPassword('');
+      setAuthEmail('');
+      setAuthFullName('');
+    } catch (err: any) {
+      setAuthError(err.message || 'Authentication failed. Please verify credentials.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   // Safe credentials helper
   const handleAutoFill = () => {
-    setFormData({
+    setFormData((prev) => ({
+      ...prev,
       fullName: 'Alexandre Horologue',
       email: 'alex.horo@premium.com',
-      phone: '+91 98765 43210',
       address: '742 Chronograph Avenue',
       city: 'Geneva',
       postalCode: '1201',
@@ -67,22 +113,26 @@ export default function CheckoutModal({
       cardName: 'Alexandre Horologue',
       expiry: '12/29',
       cvv: '399',
-    });
+    }));
+
+    if (!user) {
+      onLogin('alex.horo@premium.com', 'Alexandre Horologue', '•••••••••', false).catch(() => {});
+    }
   };
 
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
     if (step === 1) {
+      if (!user) {
+        alert('Please login or sign up to complete your checkout.');
+        return;
+      }
       if (!formData.fullName) {
-        alert('Please complete the compulsory Subscriber Name.');
+        alert('No registered member name is matched. Please authenticate first.');
         return;
       }
       if (!formData.email) {
-        alert('Please complete the compulsory Contact Email.');
-        return;
-      }
-      if (!formData.phone) {
-        alert('Please complete the compulsory Mobile Number.');
+        alert('No registered email coordinates are matched. Please authenticate first.');
         return;
       }
       if (!formData.address) {
@@ -209,258 +259,511 @@ export default function CheckoutModal({
         </div>
 
         {/* Status tracker timeline nodes */}
-        <div className="px-6 py-3 border-b border-white/5 flex items-center space-x-2 text-xs font-mono text-stone-400 select-none bg-[#121212]">
-          <span className={step === 1 ? 'text-amber-500 font-bold' : 'text-stone-500'}>1. Delivery Info</span>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className={step === 2 ? 'text-amber-500 font-bold' : 'text-stone-500'}>2. Card details</span>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className={step === 3 ? 'text-emerald-400 font-bold' : 'text-stone-500'}>3. Completion</span>
+        <div className="px-6 py-3 border-b border-white/5 flex items-center space-x-2 text-[10px] md:text-xs font-mono text-stone-400 select-none bg-[#121212] overflow-x-auto whitespace-nowrap">
+          <span className={step === 1 ? 'text-amber-500 font-bold' : step > 1 ? 'text-emerald-500 font-bold' : 'text-stone-500'}>1. Login/Sign-up</span>
+          <ChevronRight className="h-3 w-3 text-stone-600 shrink-0" />
+          <span className={step === 2 ? 'text-amber-500 font-bold' : step > 2 ? 'text-emerald-500 font-bold' : 'text-stone-500'}>2. Select Info</span>
+          <ChevronRight className="h-3 w-3 text-stone-600 shrink-0" />
+          <span className={step === 3 ? 'text-amber-500 font-bold' : step > 3 ? 'text-emerald-500' : 'text-stone-500'}>3. Card details</span>
+          <ChevronRight className="h-3 w-3 text-stone-600 shrink-0" />
+          <span className={step === 4 ? 'text-amber-500 font-bold' : step > 4 ? 'text-emerald-400 font-bold' : 'text-stone-500'}>4. Collation</span>
         </div>
 
         {/* Wizard content core */}
         <div className="p-6">
           
           {step === 1 && (
-            <form onSubmit={handleNextStep} className="space-y-5 text-left">
-
-              {/* Informative notification and Autofill helper */}
-              <div className="flex justify-between items-center bg-amber-500/5 p-4 rounded-xl border border-amber-500/10">
-                <p className="text-[10.5px] font-mono text-stone-300 leading-normal">
-                  📌 <span className="text-amber-500 font-bold">MANDATORY INFORMATION REQUIRED</span>: Provide complete contact and shipping coordinates so our logistics and concierge teams can synchronize your delivery profile.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleAutoFill}
-                  className="bg-white/5 border border-white/10 text-stone-300 hover:text-white text-[10px] font-mono font-bold px-2.5 py-1.5 rounded transition-all shrink-0 cursor-pointer"
-                >
-                  ⚡ Auto-Fill Demo
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Full Subscriber Name - Always Compulsory */}
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                    Full Subscriber Name <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    required
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    placeholder="Alexandre Horologue"
-                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-sans"
-                  />
-                </div>
-
-                {/* Contact: Email & Phone - Both Compulsory */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                      Contact Email Address <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      required
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="alex.horo@premium.com"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-sans"
-                    />
+            <div className="space-y-5 text-left">
+              {/* Secure Login / Sign-up Selection block */}
+              {user ? (
+                <div className="space-y-6">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-xl flex flex-col items-center text-center space-y-3">
+                    <div className="h-10 w-10 rounded-full bg-emerald-500/25 flex items-center justify-center border border-emerald-500/30">
+                      <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-semibold mb-1">Authenticated Boutique Profile</p>
+                      <h4 className="text-base font-serif font-bold text-white leading-tight">{user.fullName}</h4>
+                      <p className="text-[11px] font-mono text-stone-400 mt-1">{user.email} • {user.memberTier}</p>
+                    </div>
+                    <div className="text-xs font-mono bg-stone-900 border border-white/5 py-1.5 px-3.5 rounded-lg text-amber-400">
+                      Boutique Loyalty balance: <span className="font-bold">{user.loyaltyPoints} PTS</span>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                      Mobile Number <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      required
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="+91 98765 43210"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                    />
+
+                  <div className="pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={handleAutoFill}
+                      className="text-[10px] font-mono text-stone-400 hover:text-white underline cursor-pointer"
+                    >
+                      ⚡ Auto-Fill Demo Data
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-black font-semibold px-8 py-3 rounded-lg text-xs font-mono tracking-wider uppercase transition-all hover:scale-[1.02] cursor-pointer"
+                    >
+                      Proceed to Select Info
+                    </button>
                   </div>
                 </div>
-
-                {/* Shipping Destination Address - Compulsory */}
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                    Shipping Destination Address <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    required
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder="742 Chronograph Avenue"
-                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-
-                {/* City & Zip - Compulsory */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                      City / Region <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      required
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      placeholder="Geneva"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                    />
+              ) : (
+                <div className="bg-white/5 border border-white/5 p-6 rounded-xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                    <div>
+                      <h4 className="text-xs font-serif font-bold text-stone-200">Boutique Secure Entrance</h4>
+                      <p className="text-[9px] font-mono text-stone-400">Log in or register to establish member pricing and purchase allocations.</p>
+                    </div>
+                    <div className="flex space-x-1.5 bg-black p-0.5 rounded border border-white/5 shrink-0 select-none">
+                      <button
+                        type="button"
+                        onClick={() => setAuthTab('login')}
+                        className={`text-[9.5px] font-mono px-3 py-1 rounded transition-colors ${authTab === 'login' ? 'bg-amber-500 text-black font-semibold' : 'text-stone-400 hover:text-white'}`}
+                      >
+                        Log In
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAuthTab('signup')}
+                        className={`text-[9.5px] font-mono px-3 py-1 rounded transition-colors ${authTab === 'signup' ? 'bg-amber-500 text-black font-semibold' : 'text-stone-400 hover:text-white'}`}
+                      >
+                        Sign Up
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                      Postal Zip Code <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="postalCode"
-                      required
-                      value={formData.postalCode}
-                      onChange={handleInputChange}
-                      placeholder="1201"
-                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                </div>
 
-                {/* Country Selection - Compulsory */}
-                <div>
-                  <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
-                    Country <span className="text-amber-500 font-bold">* (Compulsory)</span>
-                  </label>
-                  <select
-                    name="country"
-                    required
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none dropdown-dark"
-                  >
-                    <option value="India">India</option>
-                    <option value="Switzerland">Switzerland</option>
-                    <option value="United States">United States</option>
-                    <option value="United Kingdom">United Kingdom</option>
-                    <option value="Germany">Germany</option>
-                    <option value="Japan">Japan</option>
-                  </select>
-                </div>
+                  {authError && (
+                    <p className="text-[10px] font-mono text-rose-400 bg-rose-950/15 border border-rose-900/30 p-2 rounded">
+                      ⚠️ {authError}
+                    </p>
+                  )}
 
-              </div>
+                  {/* Inline Auth Fields */}
+                  <form onSubmit={handleInlineAuth} className="space-y-4">
+                    {authTab === 'signup' && (
+                      <div>
+                        <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          placeholder="Alexandre Horologue"
+                          value={authFullName}
+                          onChange={(e) => setAuthFullName(e.target.value)}
+                          className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
+                        />
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">Email Coordinates</label>
+                        <input
+                          type="email"
+                          placeholder="alex.horo@premium.com"
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">Password</label>
+                        <input
+                          type="password"
+                          placeholder="••••••••••••••"
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
+                        />
+                      </div>
+                    </div>
 
-              <div className="pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-white/5 gap-4">
-                <div className="text-left font-sans">
-                  <span className="text-[9px] font-mono text-stone-500 uppercase tracking-widest block">Total Invoice</span>
-                  <span className="font-serif font-semibold text-lg text-white">₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <div className="flex justify-between items-center pt-2">
+                      <button
+                        type="button"
+                        onClick={handleAutoFill}
+                        className="text-[10px] font-mono text-stone-400 hover:text-white underline cursor-pointer"
+                      >
+                        ⚡ Use Demo Profile
+                      </button>
+                      
+                      <button
+                        type="submit"
+                        disabled={authLoading}
+                        className="bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-[10px] font-mono tracking-wider uppercase transition-colors flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        {authLoading ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Verifying...</span>
+                          </>
+                        ) : (
+                          <span>{authTab === 'login' ? 'Authenticate Profile' : 'Enroll Boutique Account'}</span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                <button
-                  type="submit"
-                  id="delivery-next-btn"
-                  className="w-full sm:w-auto bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-all duration-200 hover:scale-[1.02] cursor-pointer"
-                >
-                  Proceed to Payment Selection
-                </button>
-              </div>
-            </form>
+              )}
+            </div>
           )}
 
           {step === 2 && (
-            <div className="space-y-6 text-left py-4">
-              {/* Luxury Contact/Payment Notice segment */}
-              <div className="bg-[#0e0e0e] border border-amber-500/20 p-8 rounded-xl text-center space-y-4 shadow-[0_4px_30px_rgba(245,158,11,0.02)]">
-                <div className="mx-auto h-12 w-12 rounded-full bg-amber-500/5 flex items-center justify-center border border-amber-500/10">
-                  <CreditCard className="h-5 w-5 text-amber-500" />
-                </div>
-                
-                <h4 className="font-serif text-amber-500 text-lg font-bold tracking-widest uppercase">
-                  Payment coordination Sequence
-                </h4>
-                
-                <div className="space-y-2">
-                  <p className="font-sans font-extrabold text-[#ffffff] text-base md:text-lg tracking-wider">
-                    FOR PAYMENT, OUR TEAM WILL CONTACT YOU SOON.
-                  </p>
-                  <p className="text-xs text-stone-400 font-sans max-w-md mx-auto leading-relaxed">
-                    Our luxury concierge team will get in touch with you via the provided coordinates to finalize secure transaction preferences and delivery schedule.
-                  </p>
-                </div>
+            <div className="space-y-5 text-left">
+              {/* Profile Bar indicator */}
+              <div className="bg-white/5 p-3 rounded-lg border border-white/5 flex justify-between items-center text-[11px] font-mono text-stone-400">
+                <span>Shipping coordinates for: <strong className="text-white font-sans">{formData.fullName || user?.fullName}</strong></span>
+                <span className="text-stone-500">[{formData.email || user?.email}]</span>
               </div>
 
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-2 font-mono text-[11px] text-stone-400">
-                <div className="flex justify-between">
-                  <span>Consignee:</span>
-                  <span className="text-white font-semibold">{formData.fullName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Contact Mobile:</span>
-                  <span className="text-white font-semibold">{formData.phone}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Contact Email:</span>
-                  <span className="text-white font-semibold">{formData.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Destination:</span>
-                  <span className="text-white font-semibold text-right max-w-[200px] truncate">{formData.address}, {formData.city}, {formData.country}</span>
-                </div>
-              </div>
+              <form onSubmit={handleNextStep} className="space-y-4">
+                <div className="space-y-4">
+                  {/* Shipping Destination Address - Compulsory */}
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                      Shipping Destination Address <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      required
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      placeholder="742 Chronograph Avenue"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
 
-              <div className="pt-4 flex justify-between items-center border-t border-white/5 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="text-stone-400 hover:text-white text-xs font-semibold py-2 cursor-pointer"
-                  disabled={isProcessing}
-                >
-                  Go Back
-                </button>
-                <button
-                  type="button"
-                  id="checkout-confirm-payment-btn"
-                  onClick={handlePay}
-                  disabled={isProcessing}
-                  className="bg-white text-black hover:bg-amber-500 hover:text-black font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-colors flex items-center space-x-2 cursor-pointer"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Confirming Order...</span>
-                    </>
-                  ) : (
-                    <span>Confirm Order Details</span>
-                  )}
-                </button>
-              </div>
+                  {/* City & Zip - Compulsory */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                        City / Region <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        required
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        placeholder="Geneva"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                        Postal Zip Code <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="postalCode"
+                        required
+                        value={formData.postalCode}
+                        onChange={handleInputChange}
+                        placeholder="1201"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Country Selection - Compulsory */}
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">
+                      Country <span className="text-amber-500 font-bold">* (Compulsory)</span>
+                    </label>
+                    <select
+                      name="country"
+                      required
+                      value={formData.country}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none dropdown-dark"
+                    >
+                      <option value="Switzerland">Switzerland</option>
+                      <option value="India">India</option>
+                      <option value="United States">United States</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Germany">Germany</option>
+                      <option value="Japan">Japan</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-between items-center border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="text-stone-400 hover:text-white text-xs font-semibold py-2 cursor-pointer"
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-all duration-200 cursor-pointer"
+                  >
+                    Proceed to Card details
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 
           {step === 3 && (
+            <div className="space-y-5 text-left">
+              {/* Credit card styling widget */}
+              <div className="bg-gradient-to-br from-stone-900 via-neutral-950 to-stone-900 border border-white/10 p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between h-40 shadow-xl select-none">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-8 -mt-8 pointer-events-none"></div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-[8px] font-mono uppercase tracking-widest text-amber-500 font-semibold mb-0.5">Chronos Private Client</p>
+                    <span className="font-serif text-sm italic text-stone-300">Boutique Card</span>
+                  </div>
+                  <div className="h-6 w-8 bg-amber-500/10 rounded-md border border-amber-500/20 flex items-center justify-center">
+                    <span className="text-[10px] font-mono text-amber-400 font-bold">VIP</span>
+                  </div>
+                </div>
+
+                {/* Card Number display */}
+                <div className="font-mono text-base tracking-widest text-white/90 drop-shadow-md">
+                  {formData.cardNumber || '•••• •••• •••• ••••'}
+                </div>
+
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-[7px] font-mono uppercase tracking-wider text-stone-500">Cardholder</p>
+                    <p className="font-sans text-[11px] text-white/80 font-medium truncate max-w-[150px] uppercase">
+                      {formData.cardName || formData.fullName || user?.fullName || 'Alexandre Horologue'}
+                    </p>
+                  </div>
+                  <div className="flex space-x-4">
+                    <div>
+                      <p className="text-[7px] font-mono uppercase tracking-wider text-stone-500">Exp</p>
+                      <p className="font-mono text-[11px] text-white/80">{formData.expiry || 'MM/YY'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[7px] font-mono uppercase tracking-wider text-stone-500">CVV</p>
+                      <p className="font-mono text-[11px] text-white/80">{formData.cvv || '•••'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Luxury concierge information panel */}
+              <div className="bg-amber-500/5 border border-amber-500/25 p-4 rounded-xl space-y-2">
+                <p className="text-[10.5px] font-mono uppercase text-amber-500 font-semibold leading-none tracking-wider">
+                  🔒 Premium Concierge Verification Protocol
+                </p>
+                <p className="text-[11px] font-sans text-stone-300 leading-relaxed">
+                  Timepieces are shipped globally with DHL priority air-freight custom insurance. Before processing, our private luxury concierge team will reach out directly to authenticate card and finalize customized order delivery sequencing.
+                </p>
+              </div>
+
+              <form onSubmit={handleNextStep} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Cardholder Name <span className="text-stone-500">*</span></label>
+                    <input
+                      type="text"
+                      name="cardName"
+                      required
+                      value={formData.cardName}
+                      onChange={handleInputChange}
+                      placeholder="Alexandre Horologue"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Card Number <span className="text-stone-500">*</span></label>
+                    <input
+                      type="text"
+                      name="cardNumber"
+                      required
+                      value={formData.cardNumber}
+                      onChange={handleInputChange}
+                      placeholder="4111 2222 3333 4444"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Expiration (MM/YY) <span className="text-stone-500">*</span></label>
+                    <input
+                      type="text"
+                      name="expiry"
+                      required
+                      value={formData.expiry}
+                      onChange={handleInputChange}
+                      placeholder="12/29"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono uppercase text-stone-400 block mb-1">Security Code (CVV) <span className="text-stone-500">*</span></label>
+                    <input
+                      type="password"
+                      name="cvv"
+                      maxLength={4}
+                      required
+                      value={formData.cvv}
+                      onChange={handleInputChange}
+                      placeholder="399"
+                      className="w-full px-3 py-2 rounded-lg border border-white/10 bg-[#121212] text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-between items-center border-t border-white/5 mx-auto">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="text-stone-400 hover:text-white text-xs font-semibold py-2 cursor-pointer"
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-all duration-200 cursor-pointer"
+                  >
+                    Proceed to Collation
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-5 text-left">
+              <div className="border border-white/5 bg-white/5 p-4 rounded-xl space-y-4">
+                <h4 className="font-serif text-amber-500 text-xs font-bold tracking-widest uppercase pb-2 border-b border-white/5">
+                  Invoice & Despatch Collation
+                </h4>
+
+                {/* 1. Committed Timepieces list */}
+                <div className="space-y-3">
+                  <p className="text-[9px] font-mono text-stone-500 uppercase tracking-wider">Allocated Timepieces</p>
+                  <div className="space-y-2.5 max-h-32 overflow-y-auto pr-1">
+                    {cart.map((item) => (
+                      <div key={item.watch.id} className="flex justify-between items-center bg-black/40 p-2 rounded-lg border border-white/5 text-xs">
+                        <div className="flex items-center space-x-2.5">
+                          <img 
+                            src={item.watch.imageUrl} 
+                            alt={item.watch.name} 
+                            className="h-8 w-8 object-cover rounded bg-stone-900 border border-white/10"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div>
+                            <h5 className="font-semibold text-white truncate max-w-[180px]">{item.watch.name}</h5>
+                            <p className="text-[9px] font-mono text-stone-400">{item.watch.brand} • Qty: {item.quantity}</p>
+                          </div>
+                        </div>
+                        <span className="font-serif font-medium text-amber-400">₹{(item.watch.price * item.quantity).toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Dispatch profile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/5 text-[11px] text-stone-400">
+                  <div>
+                    <span className="text-[9px] font-mono text-stone-500 uppercase block mb-1">Verified Member</span>
+                    <p className="text-white font-semibold font-sans leading-tight">{formData.fullName || user?.fullName}</p>
+                    <p className="text-stone-400 font-mono text-[10px]">{formData.email || user?.email}</p>
+                    <p className="text-stone-500 font-mono text-[9px] mt-1">Tier: {user?.memberTier || 'Loyal Collector'}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-mono text-stone-500 uppercase block mb-1">Shipping Destination</span>
+                    <p className="text-white font-sans leading-relaxed">{formData.address}</p>
+                    <p className="text-stone-400 font-mono text-[10px]">{formData.city}, {formData.postalCode}</p>
+                    <p className="text-amber-500 font-mono text-[10px] tracking-wide mt-1">📍 {formData.country} (DHL Express)</p>
+                  </div>
+                </div>
+
+                {/* 3. Payment Option */}
+                <div className="pt-2 border-t border-white/5 text-[11px]">
+                  <span className="text-[9px] font-mono text-stone-500 uppercase block mb-1">Approved Payment Source</span>
+                  <div className="flex justify-between items-center text-stone-400">
+                    <span>VIP Client Card</span>
+                    <span className="font-mono text-white">
+                      {formData.cardNumber ? `${formData.cardNumber.slice(0, 4)} •••• •••• ${formData.cardNumber.slice(-4)}` : '•••• •••• •••• ••••'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4. Billing statement */}
+                <div className="pt-3 border-t border-white/5 space-y-1.5 font-mono text-[10.5px] text-stone-400">
+                  <div className="flex justify-between text-xs text-stone-500">
+                    <span>Cart Subtotal</span>
+                    <span>₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-emerald-400">
+                      <span>Promo Applied ({appliedPromo?.code})</span>
+                      <span>- ₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+                  {giftWrapping && (
+                    <div className="flex justify-between">
+                      <span>Gift Wrapping & Registry Wax</span>
+                      <span>₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>DHL Courier Priority Fee</span>
+                    <span>{shippingCost === 0 ? 'COMPLIMENTARY' : `₹${shippingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-white/5 gap-4">
+                <div className="text-left font-sans flex-shrink-0">
+                  <span className="text-[9px] font-mono text-stone-500 uppercase tracking-widest block">Total Collation Balance</span>
+                  <span className="font-serif font-black text-xl text-white">₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex space-x-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    disabled={isProcessing}
+                    className="px-4 py-2.5 text-stone-400 hover:text-white font-semibold text-xs border border-white/5 hover:bg-white/5 rounded-lg transition-all cursor-pointer"
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    type="button"
+                    id="checkout-confirm-payment-btn"
+                    onClick={handlePay}
+                    disabled={isProcessing}
+                    className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-black font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition-colors flex items-center justify-center space-x-2 cursor-pointer"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Confirming Order...</span>
+                      </>
+                    ) : (
+                      <span>Place Secure Order</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 5 && (
             <div className="text-center py-6 space-y-4">
               <div className="inline-flex items-center justify-center p-3 rounded-full bg-emerald-950/20 text-emerald-400 animate-bounce mb-2 border border-emerald-900/30">
                 <CheckCircle2 className="h-8 w-8" />
               </div>
               
               <h3 className="font-serif text-2xl font-semibold text-white leading-tight">
-                Order Completed!
+                Allocation Confirmed!
               </h3>
               
-              <p className="text-xs text-stone-300 max-w-sm mx-auto leading-relaxed">
-                Thank you for your purchase. We have committed your allocation and finalized your premium timepiece reservation sequence.
+              <p className="text-xs text-stone-300 max-w-sm mx-auto leading-relaxed font-sans">
+                Thank you for your purchase. We have committed your physical allocation in our Swiss vaults and initialized your premium timepiece reservation sequence.
               </p>
 
               {/* Delivery info segment */}
               <div className="bg-white/5 border border-white/5 p-4 rounded-xl text-xs max-w-sm mx-auto font-mono text-stone-400 select-none">
-                <span className="text-[10px] block uppercase text-stone-500">ESTIMATED LOGISTICS SEQUENCE</span>
-                <p className="text-amber-500 font-bold mt-1">3 - 5 Business Days via DHL Express</p>
+                <span className="text-[10px] block uppercase text-stone-500">ESTIMATED LOGISTICS TIMELINE</span>
+                <p className="text-amber-500 font-bold mt-1">3 - 5 Business Days via DHL Express Air Priority</p>
+                <p className="text-[9px] text-stone-500 mt-1">Consignee: {formData.fullName || user?.fullName}</p>
               </div>
 
               <div className="pt-6 border-t border-white/5">

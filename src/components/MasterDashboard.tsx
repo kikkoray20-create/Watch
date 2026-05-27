@@ -19,9 +19,14 @@ import {
   ChevronRight, 
   CheckCircle, 
   AlertTriangle,
-  Coins
+  Coins,
+  Users,
+  Search,
+  Sparkles,
+  Award,
+  Star
 } from 'lucide-react';
-import { WatchModel, CompactOrder, BoutiqueSettings } from '../types';
+import { WatchModel, CompactOrder, BoutiqueSettings, UserProfile } from '../types';
 
 interface MasterDashboardProps {
   catalog: WatchModel[];
@@ -35,6 +40,10 @@ interface MasterDashboardProps {
   onUpdateSettings: (newSettings: BoutiqueSettings) => void;
   onRestoreOriginals: () => void;
   onClose: () => void;
+  users?: UserProfile[];
+  onUpdateUser?: (updatedUser: UserProfile) => Promise<void>;
+  onRemoveUser?: (email: string) => Promise<void>;
+  onAddUserSimulation?: () => Promise<void>;
 }
 
 export default function MasterDashboard({
@@ -49,12 +58,26 @@ export default function MasterDashboard({
   onUpdateSettings,
   onRestoreOriginals,
   onClose,
+  users = [],
+  onUpdateUser,
+  onRemoveUser,
+  onAddUserSimulation,
 }: MasterDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customizer'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customers' | 'customizer'>('catalog');
   
   // Settings Drafts for Boutique customizer
   const [draftSettings, setDraftSettings] = useState<BoutiqueSettings>({ ...settings });
   const [isSettingsSaved, setIsSettingsSaved] = useState(true);
+
+  // Customer Management States
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showRegularOnly, setShowRegularOnly] = useState(false);
+  const [expandedCustomerEmail, setExpandedCustomerEmail] = useState<string | null>(null);
+  
+  const [editingCustomerEmail, setEditingCustomerEmail] = useState<string | null>(null);
+  const [editCustomerName, setEditCustomerName] = useState('');
+  const [editCustomerTier, setEditCustomerTier] = useState<UserProfile['memberTier']>('Loyal Collector');
+  const [editCustomerPoints, setEditCustomerPoints] = useState(15);
 
   React.useEffect(() => {
     setDraftSettings({ ...settings });
@@ -308,7 +331,7 @@ export default function MasterDashboard({
       </div>
 
       {/* Grid Stats Highlights Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 border-b border-white/5 bg-black/45">
+      <div className="grid grid-cols-2 md:grid-cols-5 border-b border-white/5 bg-black/45">
         <div className="p-4 border-r border-white/5 space-y-0.5">
           <span className="text-[9px] font-mono text-stone-550 uppercase tracking-widest">BOUTIQUE REVENUE</span>
           <span className="text-base sm:text-lg font-bold font-mono text-amber-500 block">
@@ -327,10 +350,16 @@ export default function MasterDashboard({
             {finishedOrders} Delivered / {pendingOrders} Pending
           </span>
         </div>
-        <div className="p-4 space-y-0.5">
+        <div className="p-4 border-r border-white/5 space-y-0.5 font-mono">
           <span className="text-[9px] font-mono text-stone-550 uppercase tracking-widest">ACTIVE CATALOG</span>
           <span className="text-base sm:text-lg font-bold font-mono text-amber-400 block">
-            {catalog.length} Handcrafted Models
+            {catalog.length} Models
+          </span>
+        </div>
+        <div className="p-4 space-y-0.5">
+          <span className="text-[9px] font-mono text-stone-550 uppercase tracking-widest">REGISTERED CLIENTS</span>
+          <span className="text-base sm:text-lg font-bold font-mono text-emerald-450 text-[#a855f7] block">
+            {users.length} Profiles
           </span>
         </div>
       </div>
@@ -360,6 +389,18 @@ export default function MasterDashboard({
           >
             <ShoppingBag className="h-3.5 w-3.5" />
             <span>Orders & Shipments ({orders.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('customers')}
+            className={`px-4 py-2.5 text-xs font-mono tracking-wider transition-all flex items-center space-x-1.5 border-b-2 cursor-pointer ${
+              activeTab === 'customers'
+                ? 'border-amber-500 text-amber-500 font-bold bg-[#121212]'
+                : 'border-transparent text-stone-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span>Customers Registry ({users.length})</span>
           </button>
 
           <button
@@ -837,6 +878,364 @@ export default function MasterDashboard({
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* TAB 2.5: REGISTERED CUSTOMERS DIRECTORY */}
+        {activeTab === 'customers' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-sm font-mono tracking-widest text-[#999999] uppercase select-none font-bold">
+                  Boutique Customer Relationship Registry
+                </h3>
+                <p className="text-[11px] text-stone-400 mt-0.5">
+                  Inspect user accounts, adjust rewards, audit orders history, and identify core frequent collectors.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2.5">
+                {onAddUserSimulation && (
+                  <button
+                    onClick={() => onAddUserSimulation()}
+                    className="bg-purple-650/10 border border-purple-500/20 hover:bg-purple-500 hover:text-black hover:border-purple-500 text-purple-400 px-3.5 py-1.5 rounded-lg text-[11px] font-mono transition-all font-bold uppercase flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Simulate Client Sign-Up</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Filters Row */}
+            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-[#101010]/50 p-4 border border-white/5 rounded-2xl">
+              {/* Search clients */}
+              <div className="relative flex-grow">
+                <Search className="absolute left-3.5 top-3 h-4 w-4 text-stone-500" />
+                <input
+                  type="text"
+                  placeholder="Inquire email matching or active full name label..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#0a0a0a] border border-white/10 rounded-xl text-xs text-white placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-505"
+                />
+              </div>
+
+              {/* Filtering Toggles */}
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowRegularOnly(!showRegularOnly)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wide uppercase transition-all flex items-center space-x-2 border cursor-pointer ${
+                    showRegularOnly
+                      ? 'bg-amber-500/10 border-amber-500 text-amber-500'
+                      : 'bg-[#a0a0a0]/5 border-white/5 text-stone-450 hover:text-white'
+                  }`}
+                >
+                  <Star className="h-3.5 w-3.5" />
+                  <span>Regular Custom (VIP) Only</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Table of customers */}
+            {(() => {
+              // Internal filter logic
+              const filteredUsers = users.filter((u) => {
+                // Calculation matches
+                const userOrders = orders.filter((o) => o.shippingDetails?.email?.toLowerCase() === u.email?.toLowerCase());
+                const orderSpent = userOrders.reduce((acc, o) => acc + o.total, 0);
+                
+                // Regular status: has 2 or more orders, OR spent over ₹1,000,000, OR points > 40
+                const isRegular = userOrders.length >= 2 || orderSpent > 1000000 || u.loyaltyPoints > 40;
+
+                const queryVal = customerSearch.trim().toLowerCase();
+                const matchesSearch = !queryVal || u.fullName.toLowerCase().includes(queryVal) || u.email.toLowerCase().includes(queryVal);
+                const matchesRegular = !showRegularOnly || isRegular;
+
+                return matchesSearch && matchesRegular;
+              });
+
+              if (filteredUsers.length === 0) {
+                return (
+                  <div className="py-16 text-center border border-dashed border-white/5 rounded-2xl space-y-3">
+                    <User className="h-8 w-8 text-stone-600 mx-auto" />
+                    <h4 className="text-white text-xs font-semibold">No registered client matches</h4>
+                    <p className="text-stone-400 text-[11px] max-w-xs mx-auto">
+                      Adjust your queries or tap Simulate Client Sign-Up to instantly populate mock accounts!
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  <div className="overflow-x-auto bg-[#101010]/30 border border-white/5 rounded-2xl animate-fade-in">
+                    <table className="w-full min-w-[700px] border-collapse text-[11px] font-mono text-stone-300">
+                      <thead>
+                        <tr className="border-b border-white/5 bg-[#121212] text-[#999999] text-left uppercase text-[9px] tracking-wider select-none">
+                          <th className="p-4">Customer Name</th>
+                          <th className="p-4">Boutique Engagement</th>
+                          <th className="p-4">Hierarchy Code / Tier</th>
+                          <th className="p-4">Loyalty Balance</th>
+                          <th className="p-4 text-center">Status Index</th>
+                          <th className="p-4 text-right">Audit controls</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredUsers.map((user) => {
+                          const userOrders = orders.filter((o) => o.shippingDetails?.email?.toLowerCase() === user.email?.toLowerCase());
+                          const totalSpent = userOrders.reduce((sum, o) => sum + o.total, 0);
+                          
+                          // Regular flag:
+                          const isRegular = userOrders.length >= 2 || totalSpent > 1000000 || user.loyaltyPoints > 45;
+                          const isExpanded = expandedCustomerEmail === user.email;
+                          const isEditing = editingCustomerEmail === user.email;
+
+                          return (
+                            <React.Fragment key={user.email}>
+                              <tr 
+                                className={`border-b border-white/5 hover:bg-white/2 transition-colors cursor-pointer ${
+                                  isExpanded ? 'bg-white/5' : ''
+                                }`}
+                                onClick={() => setExpandedCustomerEmail(isExpanded ? null : user.email)}
+                              >
+                                <td className="p-4">
+                                  <div className="flex items-center space-x-3 text-left">
+                                    <div className="h-8 w-8 bg-[#151515] rounded-full border border-white/10 flex items-center justify-center shrink-0">
+                                      <User className={`h-4 w-4 ${user.isAdmin ? 'text-amber-500' : 'text-stone-400'}`} />
+                                    </div>
+                                    <div>
+                                      <span className="text-white font-semibold text-xs block">{user.fullName}</span>
+                                      <span className="text-stone-500 font-normal text-[10px] block mt-0.5">{user.email}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <span className="text-xs text-stone-200 block font-bold">
+                                    ₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
+                                  </span>
+                                  <span className="text-[10px] text-stone-450 block">
+                                    {userOrders.length} Order Transaction(s)
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <span className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full ${
+                                    user.isAdmin 
+                                      ? 'bg-amber-950/20 text-amber-500 border border-amber-500/30'
+                                      : user.memberTier === 'Grand Sovereign'
+                                      ? 'bg-[#1e1a3b]/40 text-[#a855f7] border border-[#a855f7]/30'
+                                      : user.memberTier === 'Vanguard'
+                                      ? 'bg-cyan-950/20 text-cyan-400 border border-cyan-500/20'
+                                      : 'bg-stone-900 text-stone-400 border border-stone-800'
+                                  }`}>
+                                    {user.isAdmin ? 'Master Administrator' : user.memberTier}
+                                  </span>
+                                </td>
+                                <td className="p-4 font-bold text-amber-500">
+                                  <div className="flex items-center space-x-1">
+                                    <Coins className="h-3.5 w-3.5 text-amber-500" />
+                                    <span>{user.loyaltyPoints} PTS</span>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-center">
+                                  {isRegular ? (
+                                    <span className="bg-emerald-950/30 text-emerald-400 border border-emerald-900/35 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-flex items-center space-x-1">
+                                      <span>★</span>
+                                      <span>REGULAR</span>
+                                    </span>
+                                  ) : (
+                                    <span className="bg-stone-900 border border-white/5 text-stone-550 px-2 py-0.5 rounded-full text-[9px] block tracking-wide uppercase max-w-[70px] mx-auto select-none">
+                                      Standard
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex justify-end items-center space-x-2">
+                                    <button
+                                      onClick={() => {
+                                        if (isExpanded) {
+                                          setExpandedCustomerEmail(null);
+                                        } else {
+                                          setExpandedCustomerEmail(user.email);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 bg-white/5 rounded text-[10px] text-stone-350 hover:bg-[#1f1f1f] border border-white/5 hover:text-white transition-all cursor-pointer"
+                                    >
+                                      {isExpanded ? 'Collapse' : 'Inspect'}
+                                    </button>
+                                    
+                                    {!user.isAdmin && onRemoveUser && (
+                                      <button
+                                        onClick={() => {
+                                          if (confirm(`Confirm permanent removal of client index for ${user.fullName}?`)) {
+                                            onRemoveUser(user.email);
+                                          }
+                                        }}
+                                        className="p-1.5 bg-white/5 text-stone-400 hover:bg-rose-950/80 hover:text-rose-400 border border-white/5 hover:border-rose-900/20 rounded transition-all cursor-pointer"
+                                        title="Delete Account Profile"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+
+                              {/* Expanded Accordion Block */}
+                              {isExpanded && (
+                                <tr className="bg-[#0b0b0b]/40 border-b border-white/5 select-none" onClick={(e) => e.stopPropagation()}>
+                                  <td colSpan={6} className="p-5">
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-left" id={`inspect-user-container-${user.email.replace(/[.@]/g, '-')}`}>
+                                      {/* Left block - Edit info */}
+                                      <div className="md:col-span-5 space-y-4">
+                                        <span className="text-[9px] font-mono text-[#999999] uppercase tracking-widest block font-extrabold border-b border-white/5 pb-1">
+                                          Edit Client Ledger Metadata
+                                        </span>
+
+                                        {isEditing ? (
+                                          <div className="space-y-3 bg-black/40 p-4 border border-white/5 rounded-xl text-left">
+                                            <div>
+                                              <label className="text-[10px] text-stone-400 uppercase tracking-wider block mb-1">Actual Client Full Name</label>
+                                              <input
+                                                type="text"
+                                                value={editCustomerName}
+                                                onChange={(e) => setEditCustomerName(e.target.value)}
+                                                className="w-full px-2.5 py-1.5 bg-[#121212] border border-white/10 rounded-lg text-xs"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="text-[10px] text-stone-400 uppercase tracking-wider block mb-1">Select Award Tier</label>
+                                              <select
+                                                value={editCustomerTier}
+                                                onChange={(e) => setEditCustomerTier(e.target.value as any)}
+                                                className="w-full px-2.5 py-1.5 bg-[#121212] border border-white/10 rounded-lg text-xs text-stone-300"
+                                              >
+                                                <option value="Loyal Collector">Loyal Collector</option>
+                                                <option value="Vanguard">Vanguard</option>
+                                                <option value="Grand Sovereign">Grand Sovereign</option>
+                                                <option value="Master Horologist">Master Horologist</option>
+                                              </select>
+                                            </div>
+                                            <div>
+                                              <label className="text-[10px] text-stone-400 uppercase tracking-wider block mb-1">Loyalty reward points</label>
+                                              <input
+                                                type="number"
+                                                value={editCustomerPoints}
+                                                onChange={(e) => setEditCustomerPoints(Number(e.target.value))}
+                                                className="w-full px-2.5 py-1.5 bg-[#121212] border border-white/10 rounded-lg text-xs"
+                                              />
+                                            </div>
+
+                                            <div className="flex justify-end space-x-1.5 pt-1.5 font-mono text-[9px]">
+                                              <button
+                                                onClick={() => setEditingCustomerEmail(null)}
+                                                className="px-2.5 py-1 bg-stone-900 border border-white/5 rounded-md text-stone-400 text-[10px] hover:text-white"
+                                              >
+                                                Cancel
+                                              </button>
+                                              <button
+                                                onClick={async () => {
+                                                  if (onUpdateUser) {
+                                                    await onUpdateUser({
+                                                      ...user,
+                                                      fullName: editCustomerName,
+                                                      memberTier: editCustomerTier,
+                                                      loyaltyPoints: editCustomerPoints
+                                                    });
+                                                  }
+                                                  setEditingCustomerEmail(null);
+                                                }}
+                                                className="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[10px] font-bold"
+                                              >
+                                                Save Ledger
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="bg-black/30 p-4 border border-white/5 rounded-xl space-y-2">
+                                            <p className="text-white text-xs font-semibold">Ledger Parameters:</p>
+                                            <ul className="space-y-1 text-stone-400 text-[10.5px]">
+                                              <li>• Email Base: <span className="text-stone-300 font-bold">{user.email}</span></li>
+                                              <li>• Registered Name: <span className="text-stone-300">{user.fullName}</span></li>
+                                              <li>• Status: <span className="text-stone-300">{user.isAdmin ? 'Authorized System Master' : 'Registered Client User'}</span></li>
+                                              <li>• Member Tier: <span className="text-amber-500 font-bold">{user.memberTier}</span></li>
+                                              <li>• Reward Points: <span className="text-stone-200 font-bold">{user.loyaltyPoints} Points</span></li>
+                                            </ul>
+                                            {!user.isAdmin && onUpdateUser && (
+                                              <button
+                                                onClick={() => {
+                                                  setEditingCustomerEmail(user.email);
+                                                  setEditCustomerName(user.fullName);
+                                                  setEditCustomerTier(user.memberTier);
+                                                  setEditCustomerPoints(user.loyaltyPoints);
+                                                }}
+                                                className="mt-2 w-full bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-black py-1.5 rounded-lg border border-amber-500/20 hover:border-amber-500 font-mono text-[10px] font-bold uppercase transition-all duration-300 flex items-center justify-center space-x-1"
+                                              >
+                                                <Edit className="h-3 w-3" />
+                                                <span>Modify Ledger Metadata</span>
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Right block - Purchased Chronometers */}
+                                      <div className="md:col-span-7 space-y-3">
+                                        <span className="text-[9px] font-mono text-[#999999] uppercase tracking-widest block font-extrabold border-b border-white/5 pb-1">
+                                          Acquisition History Log
+                                        </span>
+
+                                        {userOrders.length === 0 ? (
+                                          <div className="py-6 text-center border border-dashed border-white/5 bg-black/10 rounded-xl">
+                                            <Package className="h-5 w-5 text-stone-600 mx-auto mb-1.5" />
+                                            <p className="text-[10px] text-stone-450">No verified store checkout registries found for this member email.</p>
+                                          </div>
+                                        ) : (
+                                          <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1">
+                                            {userOrders.map((ord) => (
+                                              <div key={ord.id} className="bg-black/40 border border-white/5 p-3 rounded-xl flex items-center justify-between gap-3 text-xs">
+                                                <div className="text-left space-y-0.5">
+                                                  <div className="text-white text-[11px] font-bold flex items-center space-x-1.5">
+                                                    <span>{ord.id}</span>
+                                                    <span className={`px-1 rounded-[3px] text-[8px] uppercase tracking-wide font-black ${
+                                                      ord.status === 'delivered' 
+                                                        ? 'bg-emerald-950/20 text-emerald-400 border border-emerald-900/30'
+                                                        : ord.status === 'rejected'
+                                                        ? 'bg-red-950/20 text-red-500 border border-red-900/30'
+                                                        : 'bg-amber-950/20 text-amber-500 border border-amber-900/30'
+                                                    }`}>
+                                                      {ord.status}
+                                                    </span>
+                                                  </div>
+                                                  <p className="text-stone-500 text-[9px] font-mono">{ord.date} • Courier: {ord.shippingDetails.shippingMethod}</p>
+                                                  <p className="text-stone-400 font-sans text-[10.5px] font-medium line-clamp-1">
+                                                    Acquired: {ord.items.map(it => `${it.quantity}x ${it.watch.brand} ${it.watch.name}`).join(', ')}
+                                                  </p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                  <span className="text-amber-500 font-mono font-bold text-[11px] block">
+                                                    ₹{ord.total.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
