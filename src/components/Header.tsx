@@ -14,6 +14,7 @@ interface HeaderProps {
   user: UserProfile | null;
   onLoginClick: () => void;
   storeName?: string;
+  categories?: string[];
   hideCategoryShelf?: boolean;
 }
 
@@ -28,6 +29,7 @@ export default function Header({
   user,
   onLoginClick,
   storeName = 'CHRONOS',
+  categories = ['sports', 'classic', 'minimalist', 'prestige'],
   hideCategoryShelf = false,
 }: HeaderProps) {
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -181,7 +183,7 @@ export default function Header({
         {!hideCategoryShelf && (
           <div className="pb-4 pt-1 flex items-center overflow-x-auto scrollbar-none gap-2 font-mono text-[10px] sm:text-xs">
             <span className="text-stone-500 uppercase tracking-wider pr-1 hidden sm:inline select-none">Collections:</span>
-            {['all', 'sports', 'classic', 'minimalist', 'prestige'].map((cat) => (
+            {['all', ...categories].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}

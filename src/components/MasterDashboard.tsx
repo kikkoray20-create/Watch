@@ -96,7 +96,7 @@ export default function MasterDashboard({
   const [watchName, setWatchName] = useState('');
   const [watchBrand, setWatchBrand] = useState('');
   const [watchPrice, setWatchPrice] = useState(150000);
-  const [watchCategory, setWatchCategory] = useState<WatchModel['category']>('sports');
+  const [watchCategory, setWatchCategory] = useState<string>(settings.categories?.[0] || 'sports');
   const [watchImgUrl, setWatchImgUrl] = useState('');
   const [watchPhotos, setWatchPhotos] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -192,7 +192,7 @@ export default function MasterDashboard({
     setWatchName('');
     setWatchBrand('');
     setWatchPrice(150000);
-    setWatchCategory('sports');
+    setWatchCategory(settings.categories?.[0] || 'sports');
     setWatchImgUrl('');
     setWatchPhotos([]);
     setWatchDesc('');
@@ -508,13 +508,12 @@ export default function MasterDashboard({
                     <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block mb-1">Category Classification</label>
                     <select
                       value={watchCategory}
-                      onChange={(e) => setWatchCategory(e.target.value as WatchModel['category'])}
+                      onChange={(e) => setWatchCategory(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-[#121212] border border-white/10 rounded-xl text-xs text-stone-300 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono cursor-pointer"
                     >
-                      <option value="sports">Sports</option>
-                      <option value="classic">Classic</option>
-                      <option value="minimalist">Minimalist</option>
-                      <option value="prestige">Prestige</option>
+                      {(settings.categories || ['sports', 'classic', 'minimalist', 'prestige']).map(cat => (
+                        <option key={cat} value={cat} className="capitalize">{cat}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -1313,6 +1312,60 @@ export default function MasterDashboard({
                     className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                   />
                   <p className="text-[9px] text-stone-550 block">*Applies to dynamic logo text in header, forms, and email receipts.</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Available Product Categories</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {(draftSettings.categories || []).map((cat) => (
+                      <div key={cat} className="flex items-center gap-1.5 bg-[#1a1a1a] border border-white/10 px-2 py-1 rounded text-[11px] text-stone-300 font-mono capitalize">
+                        <span>{cat}</span>
+                        <button 
+                          type="button" 
+                          TITLE="Remove Category"
+                          onClick={() => handleSettingChange('categories', (draftSettings.categories || []).filter(c => c !== cat))} 
+                          className="text-stone-500 hover:text-red-400 transition-colors"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      id="new-category-input"
+                      placeholder="Add new category (e.g. diving)"
+                      className="flex-1 px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const newCat = e.currentTarget.value.trim().toLowerCase();
+                          if (newCat && !(draftSettings.categories || []).includes(newCat)) {
+                            handleSettingChange('categories', [...(draftSettings.categories || []), newCat]);
+                            e.currentTarget.value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const input = document.getElementById('new-category-input') as HTMLInputElement;
+                        if (input) {
+                          const newCat = input.value.trim().toLowerCase();
+                          if (newCat && !(draftSettings.categories || []).includes(newCat)) {
+                            handleSettingChange('categories', [...(draftSettings.categories || []), newCat]);
+                            input.value = '';
+                          }
+                        }
+                      }}
+                      className="bg-[#1a1a1a] border border-white/10 hover:bg-[#222] text-xs px-3 py-2 rounded-xl text-white font-mono transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-stone-550 block">*Defines the navigation categories available in the boutique header. Press Enter to add.</p>
                 </div>
 
                 <div className="space-y-1">

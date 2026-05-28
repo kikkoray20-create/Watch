@@ -12,6 +12,7 @@ interface InvoiceModalProps {
 
 export default function InvoiceModal({ order, onClose, settings }: InvoiceModalProps) {
   const [isSending, setIsSending] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendStep, setSendStep] = useState('');
 
@@ -65,6 +66,7 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
 
   // PDF generation
   const handleDownloadPDF = async () => {
+    setIsDownloading(true);
     try {
       const input = document.getElementById('printable-invoice-canvas');
       if (!input) {
@@ -73,7 +75,7 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
       }
 
       console.log('Generating PDF...');
-      const canvas = await html2canvas(input, { scale: 2, useCORS: true });
+      const canvas = await html2canvas(input, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
       const imgData = canvas.toDataURL('image/png');
       
       // Create PDF (A4 size)
@@ -86,6 +88,8 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
       console.log('PDF generated successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -144,10 +148,15 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
               <button
                 type="button"
                 onClick={handleDownloadPDF}
-                className="bg-stone-900 border border-white/10 hover:bg-stone-800 text-stone-200 px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider uppercase flex items-center space-x-1.5 transition-all cursor-pointer"
+                disabled={isDownloading}
+                className="bg-stone-900 border border-white/10 hover:bg-stone-800 text-stone-200 px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider uppercase flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
               >
-                <Download className="h-3.5 w-3.5" />
-                <span>Download PDF</span>
+                {isDownloading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                <span>{isDownloading ? 'Processing...' : 'Download PDF'}</span>
               </button>
 
               {/* Print Invoice button */}

@@ -52,8 +52,10 @@ export default function App() {
     }
     return {
       storeName: 'CHRONOS',
+      categories: ['sports', 'classic', 'minimalist', 'prestige'],
       promoCode: 'SHOPIFY20',
       promoDiscountPercent: 20,
+      isPromotionActive: true,
       heroTitle: 'Precision Built',
       heroSub: 'For Generation Sovereigns',
       heroDesc: 'Experience the masterworks of micro-mechanics. Our watches combine aerospace-grade lightweight titanium housing, box sapphire crystals, and complex gear-turning manual Tourbillon calibre movements.',
@@ -963,6 +965,7 @@ export default function App() {
         user={currentUser}
         onLoginClick={() => setIsLoginOpen(true)}
         storeName={boutiqueSettings.storeName}
+        categories={boutiqueSettings.categories || ['sports', 'classic', 'minimalist', 'prestige']}
         hideCategoryShelf={isAdminDashboardActive}
       />
 
@@ -1062,17 +1065,19 @@ export default function App() {
             </section>
 
             {/* Campaign Voucher Banner Strip */}
-            <div className="bg-[#080808] text-amber-500/90 select-none py-4 border-y border-white/5">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs font-mono select-none gap-2">
-                <span className="flex items-center space-x-1.5 font-sans font-medium text-stone-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping"></span>
-                  <span>LIMITED PROMOTION IN PROGRESS: Test our secure shopping platform!</span>
-                </span>
-                <span>
-                  Apply code <b className="text-white hover:underline bg-[#151515] border border-white/10 px-2 py-1 rounded">SHOPIFY20</b> at checkout for <b className="text-white font-bold">20% off all watches</b>
-                </span>
+            {boutiqueSettings.isPromotionActive && (
+              <div className="bg-[#080808] text-amber-500/90 select-none py-4 border-y border-white/5">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs font-mono select-none gap-2">
+                  <span className="flex items-center space-x-1.5 font-sans font-medium text-stone-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                    <span>LIMITED PROMOTION IN PROGRESS: Test our secure shopping platform!</span>
+                  </span>
+                  <span>
+                    Apply code <b className="text-white hover:underline bg-[#151515] border border-white/10 px-2 py-1 rounded">{boutiqueSettings.promoCode || 'PROMO'}</b> at checkout for <b className="text-white font-bold">{boutiqueSettings.promoDiscountPercent || 0}% off all watches</b>
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Core Product Grid Display */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 scroll-mt-20" id="collection-shelf">

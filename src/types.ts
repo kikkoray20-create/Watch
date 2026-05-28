@@ -3,7 +3,7 @@ export interface WatchModel {
   name: string;
   brand: string;
   price: number;
-  category: 'sports' | 'classic' | 'minimalist' | 'prestige';
+  category: string;
   imageUrl: string;
   images?: string[];
   description: string;
@@ -84,6 +84,7 @@ export interface GiftBoxOption {
 
 export interface BoutiqueSettings {
   storeName: string;
+  categories?: string[];
   promoCode: string;
   promoDiscountPercent: number;
   heroTitle: string;
