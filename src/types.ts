@@ -90,6 +90,7 @@ export interface BoutiqueSettings {
   heroSub: string;
   heroDesc: string;
   warrantyActive: boolean;
+  isPromotionActive?: boolean;
   giftWrappingEnabled?: boolean;
   giftBoxOptions?: GiftBoxOption[];
   freeShippingEnabled?: boolean;

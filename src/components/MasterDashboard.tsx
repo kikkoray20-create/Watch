@@ -315,7 +315,7 @@ export default function MasterDashboard({
   };
 
   return (
-    <div className="bg-[#080808] border-b border-white/5 text-stone-200 text-left relative min-h-[500px]" id="master-admin-console-panel">
+    <div className="bg-[#080808] border border-amber-500/10 text-stone-200 text-left relative min-h-[500px] shadow-[0_0_15px_rgba(245,158,11,0.05)]" id="master-admin-console-panel">
       
       {/* Admin dashboard header row */}
       <div className="bg-[#101010] px-6 py-5 border-b border-amber-500/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -1336,6 +1336,26 @@ export default function MasterDashboard({
                 </div>
 
                 <div className="space-y-1">
+                  <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Limited Promotion State</label>
+                  <div className="flex items-center space-x-2 pt-1 font-mono text-stone-300">
+                    <button
+                      type="button"
+                      onClick={() => handleSettingChange('isPromotionActive', !draftSettings.isPromotionActive)}
+                      className="text-amber-500 cursor-pointer text-stone-400 focus:outline-none"
+                    >
+                      {draftSettings.isPromotionActive ? (
+                        <ToggleRight className="h-8 w-8 text-amber-500" />
+                      ) : (
+                        <ToggleLeft className="h-8 w-8 text-stone-600" />
+                      )}
+                    </button>
+                    <span className="text-[10px]">
+                      {draftSettings.isPromotionActive ? 'ENABLED: Promotion banner active on storefront' : 'DISABLED: Promotion banner hidden'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1 pt-2 border-t border-white/5">
                   <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Warranty Engine Badge Status</label>
                   <div className="flex items-center space-x-2 pt-1 font-mono text-stone-300">
                     <button

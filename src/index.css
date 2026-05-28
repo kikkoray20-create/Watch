@@ -20,19 +20,19 @@ body {
   color: #e0e0e0;
   font-family: var(--font-sans);
 }
-
-/* Custom scrollbar styling for technical terminals and views */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(188, 163, 116, 0.2);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(188, 163, 116, 0.4);
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #printable-invoice-canvas, #printable-invoice-canvas * {
+    visibility: visible !important;
+  }
+  #printable-invoice-canvas {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    color: black !important;
+    background-color: white !important;
+  }
 }
