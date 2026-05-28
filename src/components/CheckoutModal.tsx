@@ -41,7 +41,7 @@ export default function CheckoutModal({
     address: '',
     city: '',
     postalCode: '',
-    country: 'United States',
+    country: 'India',
     shippingMethod: 'air_priority',
     cardNumber: '',
     cardName: '',
@@ -109,9 +109,9 @@ export default function CheckoutModal({
           throw new Error('Email logins are not allowed. Please login or sign up using your mobile number.');
         }
         // Mobile number structure verification
-        const phoneRegex = /^[+]?[0-9\s\-()]{10,20}$/;
+        const phoneRegex = /^[+]?[0-9\s\-()]{4,20}$/;
         if (!phoneRegex.test(cleaned)) {
-          throw new Error('Invalid mobile number. Please enter a valid mobile number (minimum 10 digits).');
+          throw new Error('Invalid mobile number. Please enter a valid mobile number.');
         }
       }
 
@@ -385,7 +385,7 @@ export default function CheckoutModal({
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[9px] font-mono uppercase tracking-wider text-amber-500 block mb-1 font-bold">10-Digit Mobile Number (No Email)</label>
+                        <label className="text-[9px] font-mono uppercase tracking-wider text-amber-500 block mb-1 font-bold">Mobile Number (No Email)</label>
                         <input
                           type="tel"
                           placeholder="e.g. 9876543210 (or admin)"

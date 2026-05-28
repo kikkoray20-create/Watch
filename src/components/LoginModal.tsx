@@ -51,12 +51,12 @@ export default function LoginModal({
       const isAdminUser = cleaned === 'admin' || cleaned === 'admin@chronos.com';
       if (!isAdminUser) {
         if (cleaned.includes('@')) {
-          throw new Error('Email logins have been disabled. Please login or register using your 10-digit mobile number.');
+          throw new Error('Email logins have been disabled. Please login or register using your mobile number.');
         }
         // Verify valid mobile digit structures
-        const phoneRegex = /^[+]?[0-9\s\-()]{10,20}$/;
+        const phoneRegex = /^[+]?[0-9\s\-()]{4,20}$/;
         if (!phoneRegex.test(cleaned)) {
-          throw new Error('Please enter a valid mobile number (minimum 10 digits).');
+          throw new Error('Please enter a valid mobile number.');
         }
       }
 
@@ -396,7 +396,7 @@ export default function LoginModal({
                   )}
 
                   <div>
-                    <label className="text-[10px] font-mono uppercase text-amber-500 block mb-1 font-bold">10-Digit Mobile Number (No Email)</label>
+                    <label className="text-[10px] font-mono uppercase text-amber-500 block mb-1 font-bold">Mobile Number (No Email)</label>
                     <input
                       type="tel"
                       required
