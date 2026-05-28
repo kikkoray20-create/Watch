@@ -73,7 +73,7 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
       }
 
       console.log('Generating PDF...');
-      const canvas = await html2canvas(input, { scale: 2 });
+      const canvas = await html2canvas(input, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
       
       // Create PDF (A4 size)
