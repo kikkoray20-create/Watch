@@ -65,19 +65,28 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
 
   // PDF generation
   const handleDownloadPDF = async () => {
-    const input = document.getElementById('printable-invoice-canvas');
-    if (!input) return;
+    try {
+      const input = document.getElementById('printable-invoice-canvas');
+      if (!input) {
+        console.error('Invoice canvas element not found');
+        return;
+      }
 
-    const canvas = await html2canvas(input, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    
-    // Create PDF (A4 size)
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Invoice-${order.id}.pdf`);
+      console.log('Generating PDF...');
+      const canvas = await html2canvas(input, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Create PDF (A4 size)
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Invoice-${order.id}.pdf`);
+      console.log('PDF generated successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
   };
 
   // Browser system layout printing
@@ -88,45 +97,6 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
   return (
     <div id="invoice-modal-overlay" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
       {/* Styles tailored specifically to isolate print preview beautifully */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          #printable-invoice-canvas, #printable-invoice-canvas * {
-            visibility: visible !important;
-          }
-          #printable-invoice-canvas {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            color: #000000 !important;
-            background: #ffffff !important;
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          /* High contrast for printing */
-          .print-light-bg {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-          }
-          .print-border {
-            border-color: #000000 !important;
-          }
-          .print-text-dark {
-            color: #000000 !important;
-          }
-          .print-text-gray {
-            color: #555555 !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-      `}} />
 
       <div className="bg-[#111111] border border-white/10 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:max-h-[90vh] animate-fade-in no-print">
         

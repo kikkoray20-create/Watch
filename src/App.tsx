@@ -1008,7 +1008,7 @@ export default function App() {
             catalog={catalog}
           />
         ) : (
-          <div>
+          <div className={boutiqueSettings.isPromotionActive ? 'border-amber-500/20 border-t border-b' : ''}>
             
             {/* Elegant Luxury Hero Showcase Banner */}
             <section className="bg-gradient-to-b from-[#0b0b0b] to-[#050505] select-none border-b border-white/5 py-16 sm:py-24 relative overflow-hidden">

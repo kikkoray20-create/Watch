@@ -32,7 +32,28 @@ body {
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
-    color: black !important;
-    background-color: white !important;
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  /* High contrast for printing */
+  .print-light-bg {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print-border {
+    border-color: #000000 !important;
+  }
+  .print-text-dark {
+    color: #000000 !important;
+  }
+  .print-text-gray {
+    color: #555555 !important;
+  }
+  .no-print {
+    display: none !important;
   }
 }
