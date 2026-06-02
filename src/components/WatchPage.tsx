@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Star, Shield, Award, HelpCircle, ShoppingBag, Landmark, Truck, RefreshCcw, Heart, Send, CreditCard, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Star, Shield, Award, HelpCircle, ShoppingBag, Landmark, Truck, RefreshCcw, Heart, Send, CreditCard } from 'lucide-react';
 import { WatchModel } from '../types';
 import { products } from '../data/products';
 
@@ -282,55 +282,9 @@ export default function WatchPage({
               </button>
             </div>
 
-            <div className="text-[10px] font-mono text-stone-500 flex justify-between pt-1">
+            <div className="text-[10px] font-mono text-stone-500 flex justify-between pt-1 font-semibold">
               <span>✈️ Order in next 02h 45m to dispatch today</span>
               <span>🔒 256-Bit SSL Secured</span>
-            </div>
-            
-            {/* Creator Review & Shareable Links Box */}
-            <div className="bg-[#0e0e0e] border border-white/5 rounded-2xl p-5 mt-4 space-y-3">
-              <div className="flex items-center space-x-2">
-                <Send className="h-4 w-4 text-amber-500" />
-                <h4 className="text-xs font-mono font-bold tracking-wider text-stone-200 uppercase">
-                  Instagram Creator Share & Loan Tools
-                </h4>
-              </div>
-              <p className="text-stone-400 text-xs leading-relaxed">
-                Want to send a special link to a customer, or lend this watch to Derek for an Instagram Reels video showcase?
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const shareLink = `${window.location.origin}${window.location.pathname}?id=${watch.id}`;
-                    navigator.clipboard.writeText(shareLink);
-                    setShareCopied(true);
-                    setTimeout(() => setShareCopied(false), 2500);
-                  }}
-                  className="w-full py-2.5 px-4 bg-[#151515] hover:bg-neutral-800 border border-white/10 rounded-xl text-[11px] font-mono tracking-wider font-extrabold text-stone-300 flex items-center justify-center space-x-2 cursor-pointer transition-all active:scale-95"
-                >
-                  {shareCopied ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5 text-amber-550" />
-                  )}
-                  <span>{shareCopied ? 'LINK COPIED' : 'COPY SPECIFIC WATCH LINK'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onLendTimepiece) {
-                      onLendTimepiece(watch.id);
-                    }
-                  }}
-                  className="w-full py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl text-[11px] font-mono tracking-wider font-extrabold text-amber-500 flex items-center justify-center space-x-2 cursor-pointer transition-all active:scale-95"
-                >
-                  <Award className="h-3.5 w-3.5" />
-                  <span>LEND TO DEREK</span>
-                </button>
-              </div>
             </div>
           </div>
 
@@ -338,38 +292,37 @@ export default function WatchPage({
           <div className="border border-white/5 rounded-2xl bg-[#0e0e0e] overflow-hidden">
             
             {/* Headers navigation */}
-            <div className="flex border-b border-white/5 bg-[#121212] px-4 text-xs font-mono overflow-x-auto scrollbar-none select-none">
+            <div className="p-2 sm:p-3 bg-[#121212] border-b border-white/5 flex flex-col sm:flex-row gap-2.5 text-xs font-mono select-none">
               <button
                 onClick={() => setActiveTab('details')}
-                className={`py-3.5 px-3 mr-2 border-b-2 font-medium tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 px-4 rounded-xl font-medium tracking-wider text-center transition-all cursor-pointer border ${
                   activeTab === 'details'
-                    ? 'border-amber-500 text-amber-500'
-                    : 'border-transparent text-stone-400 hover:text-white'
+                    ? 'bg-amber-500 text-black border-amber-500 font-extrabold shadow-[0_4px_12px_rgba(245,158,11,0.25)]'
+                    : 'bg-[#181818] text-stone-400 border-white/5 hover:text-white hover:bg-neutral-800'
                 }`}
               >
                 Timepiece Details
               </button>
               <button
                 onClick={() => setActiveTab('specs')}
-                className={`py-3.5 px-3 mr-2 border-b-2 font-medium tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 px-4 rounded-xl font-medium tracking-wider text-center transition-all cursor-pointer border ${
                   activeTab === 'specs'
-                    ? 'border-amber-500 text-amber-500'
-                    : 'border-transparent text-stone-400 hover:text-white'
+                    ? 'bg-amber-500 text-black border-amber-500 font-extrabold shadow-[0_4px_12px_rgba(245,158,11,0.25)]'
+                    : 'bg-[#181818] text-stone-400 border-white/5 hover:text-white hover:bg-neutral-800'
                 }`}
               >
                 Technical Meta Specs
               </button>
               <button
                 onClick={() => setActiveTab('reviews')}
-                className={`py-3.5 px-3 mr-2 border-b-2 font-medium tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 px-4 rounded-xl font-medium tracking-wider text-center transition-all cursor-pointer border ${
                   activeTab === 'reviews'
-                    ? 'border-amber-500 text-amber-500'
-                    : 'border-transparent text-stone-400 hover:text-white'
+                    ? 'bg-amber-500 text-black border-amber-500 font-extrabold shadow-[0_4px_12px_rgba(245,158,11,0.25)]'
+                    : 'bg-[#181818] text-stone-400 border-white/5 hover:text-white hover:bg-neutral-800'
                 }`}
               >
                 Owner Reviews ({reviews.length})
               </button>
-
             </div>
 
             {/* Core Tab Content Screen Area */}

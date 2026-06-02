@@ -116,6 +116,32 @@ export default function App() {
     window.history.pushState({}, '', url.toString());
   };
 
+  // Synchronize browser URL query parameters dynamically with current view state
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (activeWatchPage) {
+      if (url.searchParams.get('id') !== activeWatchPage.id) {
+        url.search = '';
+        url.searchParams.set('id', activeWatchPage.id);
+        window.history.pushState({}, '', url.toString());
+      }
+    } else if (isLendingPageActive) {
+      if (url.searchParams.get('page') !== 'lend' || (initialLendingWatchId && url.searchParams.get('watch') !== initialLendingWatchId)) {
+        url.search = '';
+        url.searchParams.set('page', 'lend');
+        if (initialLendingWatchId) {
+          url.searchParams.set('watch', initialLendingWatchId);
+        }
+        window.history.pushState({}, '', url.toString());
+      }
+    } else {
+      if (url.searchParams.has('id') || url.searchParams.has('page') || url.searchParams.has('watch')) {
+        url.search = '';
+        window.history.pushState({}, '', url.toString());
+      }
+    }
+  }, [activeWatchPage, isLendingPageActive, initialLendingWatchId]);
+
   // User Authentication & Loyalty state
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('chronos_user');
