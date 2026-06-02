@@ -3,13 +3,14 @@ import Header from './components/Header';
 import WatchCard from './components/WatchCard';
 import WatchModal from './components/WatchModal';
 import WatchPage from './components/WatchPage';
+import LendingPage from './components/LendingPage';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
 import LoginModal from './components/LoginModal';
 import MasterDashboard from './components/MasterDashboard';
 
 import { products } from './data/products';
-import { CartItem, WatchModel, CheckoutDetails, UserProfile, CompactOrder, BoutiqueSettings } from './types';
+import { CartItem, WatchModel, CheckoutDetails, UserProfile, CompactOrder, BoutiqueSettings, LendingProposal } from './types';
 import { ShieldCheck, ArrowRight, Info, Clock, AlertCircle } from 'lucide-react';
 
 // Firebase Database & Authentication Setup
@@ -32,6 +33,9 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedWatch, setSelectedWatch] = useState<WatchModel | null>(null);
   const [activeWatchPage, setActiveWatchPage] = useState<WatchModel | null>(null);
+  const [isLendingPageActive, setIsLendingPageActive] = useState(false);
+  const [initialLendingWatchId, setInitialLendingWatchId] = useState<string | null>(null);
+
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -81,6 +85,37 @@ export default function App() {
     return saved ? JSON.parse(saved) : products;
   });
 
+  // Parse deep links or special routes from URL query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const watchId = params.get('watch') || params.get('id');
+    const page = params.get('page');
+
+    if (page === 'lend') {
+      setIsLendingPageActive(true);
+      if (watchId) {
+        setInitialLendingWatchId(watchId);
+      }
+    } else if (watchId) {
+      // Find in existing catalog (either static products on load or restored)
+      const found = catalog.find((w) => w.id === watchId);
+      if (found) {
+        setActiveWatchPage(found);
+      } else {
+        const foundFallback = products.find((w) => w.id === watchId);
+        if (foundFallback) {
+          setActiveWatchPage(foundFallback);
+        }
+      }
+    }
+  }, [catalog]);
+
+  const handleClearUrlParams = () => {
+    const url = new URL(window.location.href);
+    url.search = '';
+    window.history.pushState({}, '', url.toString());
+  };
+
   // User Authentication & Loyalty state
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('chronos_user');
@@ -104,6 +139,9 @@ export default function App() {
 
   // Trackable Order History mapping
   const [orders, setOrders] = useState<CompactOrder[]>([]);
+
+  // List of all registered lending proposals
+  const [lendingProposals, setLendingProposals] = useState<LendingProposal[]>([]);
 
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
@@ -381,6 +419,71 @@ export default function App() {
     };
 
     setupUsersListener();
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Real-time Lending Proposals Listener
+  useEffect(() => {
+    let unsubscribe: () => void = () => {};
+
+    const setupLendingListener = () => {
+      if (configDiagnostics.isUsingFallback) {
+        // Fallback local storage
+        const saved = localStorage.getItem('chronos_lending_proposals');
+        if (saved) {
+          const list: LendingProposal[] = JSON.parse(saved);
+          if (currentUser?.isAdmin) {
+            setLendingProposals(list);
+          } else if (currentUser?.isLoggedIn && currentUser.email) {
+            const filtered = list.filter((prop) => prop.senderEmail === currentUser.email);
+            setLendingProposals(filtered);
+          } else {
+            setLendingProposals(list);
+          }
+        }
+        return;
+      }
+
+      try {
+        const proposalsCol = collection(db, 'lending_proposals');
+        let proposalsQuery;
+
+        if (currentUser?.isAdmin) {
+          proposalsQuery = query(proposalsCol);
+        } else if (currentUser?.isLoggedIn && currentUser.email) {
+          proposalsQuery = query(proposalsCol, where('senderEmail', '==', currentUser.email));
+        } else {
+          return;
+        }
+
+        unsubscribe = onSnapshot(proposalsQuery, (snapshot) => {
+          const loaded: LendingProposal[] = [];
+          snapshot.forEach((doc) => {
+            loaded.push(doc.data() as LendingProposal);
+          });
+          loaded.sort((a, b) => b.date.localeCompare(a.date));
+          setLendingProposals(loaded);
+        }, (error) => {
+          console.warn("Firestore lending listener error: ", error);
+          const saved = localStorage.getItem('chronos_lending_proposals');
+          if (saved) {
+            const list: LendingProposal[] = JSON.parse(saved);
+            if (currentUser?.isAdmin) {
+              setLendingProposals(list);
+            } else if (currentUser?.isLoggedIn && currentUser.email) {
+              const filtered = list.filter((prop) => prop.senderEmail === currentUser.email);
+              setLendingProposals(filtered);
+            } else {
+              setLendingProposals(list);
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Failed to setup lending proposals listener: ", err);
+      }
+    };
+
+    setupLendingListener();
     return () => unsubscribe();
   }, [currentUser]);
 
@@ -680,6 +783,84 @@ export default function App() {
     }
   };
 
+  const handleUpdateLendingStatus = async (proposalId: string, status: LendingProposal['status'], labelText?: string) => {
+    // Optimistic update
+    setLendingProposals((prev) =>
+      prev.map((prop) => (prop.id === proposalId ? { ...prop, status, ...(labelText ? { trackingNumber: labelText } : {}) } : prop))
+    );
+
+    // Sync locally
+    try {
+      const saved = localStorage.getItem('chronos_lending_proposals');
+      if (saved) {
+        const list: LendingProposal[] = JSON.parse(saved);
+        const updated = list.map((prop) => prop.id === proposalId ? { ...prop, status, ...(labelText ? { trackingNumber: labelText } : {}) } : prop);
+        localStorage.setItem('chronos_lending_proposals', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error('Error updating lending status locally:', e);
+    }
+
+    // Sync cloud
+    try {
+      if (!configDiagnostics.isUsingFallback) {
+        const docRef = doc(db, 'lending_proposals', proposalId);
+        await setDoc(docRef, { status, ...(labelText ? { trackingNumber: labelText } : {}) }, { merge: true });
+        triggerNotification(`Proposal ${proposalId} status updated to "${status}" in Cloud.`);
+      } else {
+        triggerNotification(`Proposal ${proposalId} updated in current local window.`);
+      }
+    } catch (e) {
+      console.warn("Cloud write failed: ", e);
+      triggerNotification(`Proposal ${proposalId} status updated locally.`);
+    }
+  };
+
+  const handleRemoveLendingProposal = async (proposalId: string) => {
+    if (confirm(`Are you sure you want to remove lending archive record ${proposalId}?`)) {
+      setLendingProposals((prev) => prev.filter((p) => p.id !== proposalId));
+
+      try {
+        const saved = localStorage.getItem('chronos_lending_proposals');
+        if (saved) {
+          const list: LendingProposal[] = JSON.parse(saved);
+          const filtered = list.filter((prop) => prop.id !== proposalId);
+          localStorage.setItem('chronos_lending_proposals', JSON.stringify(filtered));
+        }
+      } catch (e) {
+        console.error('Error removing lending record locally:', e);
+      }
+
+      try {
+        if (!configDiagnostics.isUsingFallback) {
+          await deleteDoc(doc(db, 'lending_proposals', proposalId));
+        }
+        triggerNotification(`Record ${proposalId} successfully purged from database.`);
+      } catch (e) {
+        triggerNotification(`Record ${proposalId} successfully purged locally.`);
+      }
+    }
+  };
+
+  const handleClearLendingProposals = async () => {
+    if (confirm('Clear all historical timepiece loan proposals from dashboard?')) {
+      try {
+        if (!configDiagnostics.isUsingFallback) {
+          const snap = await getDocs(collection(db, 'lending_proposals'));
+          for (const docSnap of snap.docs) {
+            await deleteDoc(doc(db, 'lending_proposals', docSnap.id));
+          }
+        }
+        setLendingProposals([]);
+        localStorage.setItem('chronos_lending_proposals', JSON.stringify([]));
+        triggerNotification('Lending archives cleared successfully!');
+      } catch (e) {
+        console.error(e);
+        triggerNotification('Archives cleared locally.');
+      }
+    }
+  };
+
   const handleUpdateUserProfile = async (updatedUser: UserProfile) => {
     try {
       const userIdKey = updatedUser.email.replace(/[.@]/g, '_');
@@ -973,17 +1154,23 @@ export default function App() {
           setSearchQuery(q);
           if (q) {
             setActiveWatchPage(null);
+            setIsLendingPageActive(false);
+            handleClearUrlParams();
           }
         }}
         selectedCategory={selectedCategory}
         setSelectedCategory={(cat) => {
           setSelectedCategory(cat);
           setActiveWatchPage(null);
+          setIsLendingPageActive(false);
+          handleClearUrlParams();
         }}
         onLogoClick={() => {
           setSearchQuery('');
           setSelectedCategory('all');
           setActiveWatchPage(null);
+          setIsLendingPageActive(false);
+          handleClearUrlParams();
         }}
         user={currentUser}
         onLoginClick={() => setIsLoginOpen(true)}
@@ -1022,11 +1209,29 @@ export default function App() {
             users={users}
             onUpdateUser={handleUpdateUserProfile}
             onRemoveUser={handleRemoveUserProfile}
+            lendingProposals={lendingProposals}
+            onUpdateLendingStatus={handleUpdateLendingStatus}
+            onRemoveLendingProposal={handleRemoveLendingProposal}
+            onClearLendingProposals={handleClearLendingProposals}
+          />
+        ) : isLendingPageActive ? (
+          <LendingPage
+            catalog={catalog}
+            onBack={() => {
+              setIsLendingPageActive(false);
+              setInitialLendingWatchId(null);
+              handleClearUrlParams();
+            }}
+            initialWatchId={initialLendingWatchId}
+            triggerNotification={triggerNotification}
           />
         ) : activeWatchPage ? (
           <WatchPage
             watch={activeWatchPage}
-            onBack={() => setActiveWatchPage(null)}
+            onBack={() => {
+              setActiveWatchPage(null);
+              handleClearUrlParams();
+            }}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onSelectAnotherWatch={(wt) => setActiveWatchPage(wt)}

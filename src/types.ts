@@ -108,3 +108,20 @@ export interface CompactOrder {
   trackingNumber: string;
 }
 
+export interface LendingProposal {
+  id: string;
+  date: string;
+  senderName: string;
+  senderEmail: string;
+  instagramHandle: string;
+  watchModelId?: string;
+  watchName: string;
+  watchBrand: string;
+  condition: 'mint' | 'excellent' | 'good' | 'fair';
+  valuation: number;
+  photos: string[];
+  notes?: string;
+  status: 'pending' | 'approved' | 'declined' | 'completed' | 'label_sent';
+  trackingNumber?: string;
+}
+

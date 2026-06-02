@@ -26,7 +26,7 @@ import {
   Award,
   Star
 } from 'lucide-react';
-import { WatchModel, CompactOrder, BoutiqueSettings, UserProfile } from '../types';
+import { WatchModel, CompactOrder, BoutiqueSettings, UserProfile, LendingProposal } from '../types';
 import InvoiceModal from './InvoiceModal';
 
 interface MasterDashboardProps {
@@ -43,6 +43,10 @@ interface MasterDashboardProps {
   users?: UserProfile[];
   onUpdateUser?: (updatedUser: UserProfile) => Promise<void>;
   onRemoveUser?: (email: string) => Promise<void>;
+  lendingProposals?: LendingProposal[];
+  onUpdateLendingStatus?: (proposalId: string, status: LendingProposal['status'], labelText?: string) => Promise<void> | void;
+  onRemoveLendingProposal?: (proposalId: string) => Promise<void> | void;
+  onClearLendingProposals?: () => Promise<void> | void;
 }
 
 export default function MasterDashboard({
@@ -59,8 +63,12 @@ export default function MasterDashboard({
   users = [],
   onUpdateUser,
   onRemoveUser,
+  lendingProposals = [],
+  onUpdateLendingStatus,
+  onRemoveLendingProposal,
+  onClearLendingProposals,
 }: MasterDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customers' | 'customizer'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customers' | 'customizer' | 'lending'>('catalog');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<CompactOrder | null>(null);
   
   // Settings Drafts for Boutique customizer
@@ -463,6 +471,18 @@ export default function MasterDashboard({
           >
             <Sliders className="h-3.5 w-3.5" />
             <span>Customize Storefront Sites</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('lending')}
+            className={`px-4 py-2.5 text-xs font-mono tracking-wider transition-all flex items-center space-x-1.5 border-b-2 cursor-pointer ${
+              activeTab === 'lending'
+                ? 'border-amber-500 text-amber-500 font-bold bg-[#121212]'
+                : 'border-transparent text-stone-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Award className="h-3.5 w-3.5" />
+            <span>Watch Loans ({lendingProposals.length})</span>
           </button>
         </div>
       </div>
@@ -1837,6 +1857,239 @@ export default function MasterDashboard({
               )}
             </div>
 
+          </div>
+        )}
+
+        {/* Watch Loans tab block */}
+        {activeTab === 'lending' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4 select-none">
+              <div>
+                <h3 className="text-sm font-mono uppercase tracking-widest text-white flex items-center space-x-2">
+                  <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                  <span>Timepiece Loan Submissions</span>
+                </h3>
+                <p className="text-stone-400 text-xs mt-1">
+                  Manage watch lending offerings submitted by collectors. Access social metrics and approve or decline loans for Derek's channels.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClearLendingProposals}
+                className="px-4 py-2 bg-rose-950/20 text-rose-400 hover:bg-rose-900/30 border border-rose-900/40 text-[11px] font-mono rounded-lg transition-all cursor-pointer"
+              >
+                CLEAR ALL LOAN RECORDS
+              </button>
+            </div>
+
+            {/* Metric Summary Rows */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4 space-y-1">
+                <span className="text-[10px] font-mono text-stone-500 uppercase">Cumulative Offerings</span>
+                <span className="text-xl font-mono font-bold text-white block">{lendingProposals.length} submissions</span>
+              </div>
+              <div className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4 space-y-1">
+                <span className="text-[10px] font-mono text-stone-500 uppercase">Awaiting Adjudication</span>
+                <span className="text-xl font-mono font-bold text-amber-500 block">
+                  {lendingProposals.filter((p) => p.status === 'pending').length} proposals
+                </span>
+              </div>
+              <div className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4 space-y-1">
+                <span className="text-[10px] font-mono text-stone-500 uppercase">Active / In Motion</span>
+                <span className="text-xl font-mono font-bold text-emerald-400 block">
+                  {lendingProposals.filter((p) => p.status === 'approved' || p.status === 'label_sent').length} watches
+                </span>
+              </div>
+            </div>
+
+            {lendingProposals.length === 0 ? (
+              <div className="border border-dashed border-white/5 bg-[#0a0a0a]/50 rounded-2xl p-12 text-center text-stone-500">
+                <Award className="h-8 w-8 text-stone-600 mx-auto mb-2 opacity-50" />
+                <p className="text-xs font-serif italic text-stone-400">"No watch loan submissions on record yet."</p>
+                <p className="text-[10px] text-stone-500 mt-1 max-w-sm mx-auto">
+                  Provide collectors with direct deep links (using <span className="font-mono text-amber-500">?page=lend</span> parameters) so they can state their models and request evaluations.
+                </p>
+              </div>
+            ) : (
+              <div className="border border-white/5 rounded-2xl overflow-hidden bg-[#0d0d0d]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-mono">
+                    <thead className="bg-[#121212] border-b border-white/5 text-stone-400">
+                      <tr>
+                        <th className="p-4 uppercase tracking-wider font-bold">Offer ID / Date</th>
+                        <th className="p-4 uppercase tracking-wider font-bold">Collector Details</th>
+                        <th className="p-4 uppercase tracking-wider font-bold">Brand & model</th>
+                        <th className="p-4 uppercase tracking-wider font-bold">Condition & Value</th>
+                        <th className="p-4 uppercase tracking-wider font-bold">Status</th>
+                        <th className="p-4 uppercase tracking-wider font-bold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {lendingProposals.map((prop) => (
+                        <tr key={prop.id} className="hover:bg-white/[0.01] transition-colors">
+                          <td className="p-4 align-top">
+                            <span className="text-[10px] text-stone-500 block">#{prop.id.substring(0, 8)}</span>
+                            <span className="text-stone-300 block">{new Date(prop.date).toLocaleDateString()}</span>
+                          </td>
+                          <td className="p-4 align-top">
+                            <span className="font-bold text-stone-200 block">{prop.senderName}</span>
+                            <span className="text-[11px] text-stone-400 block">{prop.senderEmail}</span>
+                            <span className="text-[10px] text-amber-500 block hover:underline">
+                              <a href={`https://instagram.com/${prop.instagramHandle.replace('@', '')}`} target="_blank" rel="noreferrer">
+                                {prop.instagramHandle.startsWith('@') ? prop.instagramHandle : `@${prop.instagramHandle}`}
+                              </a>
+                            </span>
+                          </td>
+                          <td className="p-4 align-top">
+                            <span className="text-stone-200 font-bold block">{prop.watchBrand}</span>
+                            <span className="text-stone-400 block">{prop.watchName}</span>
+                            {prop.watchModelId && (
+                              <span className="text-[10px] bg-stone-900 px-2 py-0.5 rounded border border-white/5 mt-1 inline-block text-stone-500">
+                                catalog Ref: {prop.watchModelId}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4 align-top">
+                            <span className="capitalize block text-stone-300">
+                              Condition: <span className="font-bold text-amber-500">{prop.condition}</span>
+                            </span>
+                            <span className="text-stone-400 block">
+                              Claimed: ₹{prop.valuation?.toLocaleString('en-IN')}
+                            </span>
+                          </td>
+                          <td className="p-4 align-top">
+                            <span
+                              className={`px-2 py-1 rounded text-[10px] font-bold inline-block border ${
+                                prop.status === 'approved'
+                                  ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/50'
+                                  : prop.status === 'label_sent'
+                                  ? 'bg-blue-950/40 text-blue-400 border-blue-900/50'
+                                  : prop.status === 'declined'
+                                  ? 'bg-rose-950/40 text-rose-400 border-rose-900/50'
+                                  : prop.status === 'completed'
+                                  ? 'bg-purple-950/40 text-purple-400 border-purple-900/50'
+                                  : 'bg-stone-900 text-stone-400 border-stone-800'
+                              }`}
+                            >
+                              {prop.status === 'label_sent' ? 'Label Shared' : prop.status.toUpperCase()}
+                            </span>
+                            {prop.trackingNumber && (
+                              <span className="block text-[10px] text-stone-500 mt-1">
+                                Tracking: <span className="text-amber-500 font-bold">{prop.trackingNumber}</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4 align-top text-right">
+                            {/* Actions options dropdown / buttons */}
+                            <div className="flex flex-col items-end gap-1.5 justify-end">
+                              {prop.status === 'pending' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      const label = prompt('Please enter the Prepaid Ship Label Tracking number or Link for the collector (Optional):') || '';
+                                      if (onUpdateLendingStatus) {
+                                        onUpdateLendingStatus(prop.id, 'label_sent', label);
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-emerald-500 hover:bg-emerald-440 text-black rounded text-[10px] font-bold cursor-pointer transition-colors"
+                                  >
+                                    APPROVE & SEND LABEL
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (onUpdateLendingStatus) {
+                                        onUpdateLendingStatus(prop.id, 'declined');
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-rose-955/20 hover:bg-rose-900/40 text-rose-300 border border-rose-900/30 rounded text-[10px] cursor-pointer"
+                                  >
+                                    DECLINE OFFER
+                                  </button>
+                                </>
+                              )}
+
+                              {prop.status === 'label_sent' && (
+                                <button
+                                  onClick={() => {
+                                    if (onUpdateLendingStatus) {
+                                      onUpdateLendingStatus(prop.id, 'completed');
+                                    }
+                                  }}
+                                  className="px-2 py-1 bg-purple-500 hover:bg-purple-400 text-black font-bold rounded text-[10px] cursor-pointer transition-colors"
+                                >
+                                  MARK AS RECEIVED & DONE
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => {
+                                  if (onRemoveLendingProposal) {
+                                    onRemoveLendingProposal(prop.id);
+                                  }
+                                }}
+                                className="text-stone-550 hover:text-rose-450 transition-colors p-1 cursor-pointer"
+                                title="Purge Record"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Submissions notes and image attachments preview drawer pane / bottom area */}
+                <div className="p-4 bg-[#101010] border-t border-white/5">
+                  <h4 className="text-[10px] font-mono text-stone-400 font-bold uppercase tracking-wider mb-2">
+                    Attached Collector Photos & Custom Notes Catalog
+                  </h4>
+                  <div className="space-y-4 max-h-[350px] overflow-y-auto scrollbar-thin pr-2">
+                    {lendingProposals.map((prop) => {
+                      const hasPhotos = prop.photos && prop.photos.length > 0;
+                      return (
+                        <div key={prop.id + '-notes'} className="p-3.5 bg-[#0a0a0a]/60 rounded-xl border border-white/5 text-[11px] leading-relaxed relative">
+                          <div className="flex justify-between font-bold text-stone-300 mb-1">
+                            <span>Watch offering by {prop.senderName} ({prop.watchBrand})</span>
+                            <span className="text-stone-500 text-[10px]">#{prop.id.substring(0, 8)}</span>
+                          </div>
+                          
+                          {prop.notes ? (
+                            <p className="text-stone-400 italic mb-2">" {prop.notes} "</p>
+                          ) : (
+                            <p className="text-stone-500 italic mb-2">No custom notes file attached by collector.</p>
+                          )}
+
+                          {hasPhotos && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {prop.photos.map((ph, idx) => (
+                                <div key={idx} className="relative group rounded-lg overflow-hidden border border-white/10 w-24 h-24 bg-stone-900 flex items-center justify-center">
+                                  <img 
+                                    src={ph} 
+                                    alt={`Offering preview ${idx}`} 
+                                    className="object-cover w-full h-full"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <a 
+                                    href={ph} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="absolute inset-0 bg-black/65 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[9px] font-bold text-amber-500 transition-all font-mono whitespace-nowrap"
+                                  >
+                                    VIEW FULLRES
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

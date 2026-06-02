@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Star, Shield, Award, HelpCircle, ShoppingBag, Landmark, Truck, RefreshCcw, Heart, Send, CreditCard } from 'lucide-react';
+import { ArrowLeft, Star, Shield, Award, HelpCircle, ShoppingBag, Landmark, Truck, RefreshCcw, Heart, Send, CreditCard, Copy, Check } from 'lucide-react';
 import { WatchModel } from '../types';
 import { products } from '../data/products';
 
@@ -9,6 +9,7 @@ interface WatchPageProps {
   onAddToCart: (watch: WatchModel) => void;
   onBuyNow?: (watch: WatchModel) => void;
   onSelectAnotherWatch: (watch: WatchModel) => void;
+  onLendTimepiece?: (watchId: string) => void;
   warrantyActive?: boolean;
   catalog?: WatchModel[];
 }
@@ -28,12 +29,14 @@ export default function WatchPage({
   onAddToCart,
   onBuyNow,
   onSelectAnotherWatch,
+  onLendTimepiece,
   warrantyActive = true,
   catalog,
 }: WatchPageProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'specs' | 'reviews'>('details');
   const [isLiked, setIsLiked] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [shareCopied, setShareCopied] = useState(false);
   
   // Local state for user reviews submissions
   const [reviews, setReviews] = useState<UserReview[]>(() => {
@@ -282,6 +285,52 @@ export default function WatchPage({
             <div className="text-[10px] font-mono text-stone-500 flex justify-between pt-1">
               <span>✈️ Order in next 02h 45m to dispatch today</span>
               <span>🔒 256-Bit SSL Secured</span>
+            </div>
+            
+            {/* Creator Review & Shareable Links Box */}
+            <div className="bg-[#0e0e0e] border border-white/5 rounded-2xl p-5 mt-4 space-y-3">
+              <div className="flex items-center space-x-2">
+                <Send className="h-4 w-4 text-amber-500" />
+                <h4 className="text-xs font-mono font-bold tracking-wider text-stone-200 uppercase">
+                  Instagram Creator Share & Loan Tools
+                </h4>
+              </div>
+              <p className="text-stone-400 text-xs leading-relaxed">
+                Want to send a special link to a customer, or lend this watch to Derek for an Instagram Reels video showcase?
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const shareLink = `${window.location.origin}${window.location.pathname}?id=${watch.id}`;
+                    navigator.clipboard.writeText(shareLink);
+                    setShareCopied(true);
+                    setTimeout(() => setShareCopied(false), 2500);
+                  }}
+                  className="w-full py-2.5 px-4 bg-[#151515] hover:bg-neutral-800 border border-white/10 rounded-xl text-[11px] font-mono tracking-wider font-extrabold text-stone-300 flex items-center justify-center space-x-2 cursor-pointer transition-all active:scale-95"
+                >
+                  {shareCopied ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5 text-amber-550" />
+                  )}
+                  <span>{shareCopied ? 'LINK COPIED' : 'COPY SPECIFIC WATCH LINK'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onLendTimepiece) {
+                      onLendTimepiece(watch.id);
+                    }
+                  }}
+                  className="w-full py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl text-[11px] font-mono tracking-wider font-extrabold text-amber-500 flex items-center justify-center space-x-2 cursor-pointer transition-all active:scale-95"
+                >
+                  <Award className="h-3.5 w-3.5" />
+                  <span>LEND TO DEREK</span>
+                </button>
+              </div>
             </div>
           </div>
 
