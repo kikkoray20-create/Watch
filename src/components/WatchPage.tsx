@@ -340,19 +340,19 @@ export default function WatchPage({
                     <tbody>
                       <tr className="border-b border-white/5">
                         <td className="py-2.5 font-mono text-stone-550 w-1/3">Calibre Calibrated</td>
-                        <td className="py-2.5 text-stone-205 font-medium">{watch.specs.movement}</td>
+                        <td className="py-2.5 text-stone-205 font-medium">{watch.specs?.movement || 'Standard Calibre'}</td>
                       </tr>
                       <tr className="border-b border-white/5">
                         <td className="py-2.5 font-mono text-stone-555">Chassis Architecture</td>
-                        <td className="py-2.5 text-stone-200 font-medium">{watch.specs.caseSize}</td>
+                        <td className="py-2.5 text-stone-200 font-medium">{watch.specs?.caseSize || 'Standard Dimensions'}</td>
                       </tr>
                       <tr className="border-b border-white/5">
                         <td className="py-2.5 font-mono text-stone-555">Protection Coating</td>
-                        <td className="py-2.5 text-stone-200 font-medium">{watch.specs.crystal}</td>
+                        <td className="py-2.5 text-stone-200 font-medium">{watch.specs?.crystal || 'Sapphire Crystal'}</td>
                       </tr>
                       <tr>
                         <td className="py-2.5 font-mono text-stone-555">Waterproof ISO Rating</td>
-                        <td className="py-2.5 text-emerald-400 font-bold">{watch.specs.waterResistance}</td>
+                        <td className="py-2.5 text-emerald-400 font-bold">{watch.specs?.waterResistance || 'Standard Water Resistance'}</td>
                       </tr>
                     </tbody>
                   </table>

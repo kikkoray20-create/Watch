@@ -71,11 +71,11 @@ export default function WatchCard({ watch, onSelect, onAddToCart }: WatchCardPro
           <div className="bg-[#151515] rounded-lg p-2.5 border border-white/5 mb-4 text-[11px] font-mono text-stone-400 space-y-1">
             <div className="flex justify-between">
               <span className="text-stone-500">Calibre:</span>
-              <span className="text-stone-200 font-medium truncate max-w-[120px]" title={watch.specs.movement}>{watch.specs.movement.split(' ')[0]}</span>
+              <span className="text-stone-200 font-medium truncate max-w-[120px]" title={watch.specs?.movement || 'Calibre'}>{(watch.specs?.movement || 'Standard').split(' ')[0]}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-stone-500">Case size:</span>
-              <span className="text-stone-200 font-medium">{watch.specs.caseSize}</span>
+              <span className="text-stone-200 font-medium">{watch.specs?.caseSize || 'Standard'}</span>
             </div>
           </div>
         </div>

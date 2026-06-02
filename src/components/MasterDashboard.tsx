@@ -189,12 +189,12 @@ export default function MasterDashboard({
     setWatchImgUrl(watch.imageUrl);
     setWatchPhotos(watch.images || (watch.imageUrl ? [watch.imageUrl] : []));
     setWatchDesc(watch.description);
-    setCaseSize(watch.specs.caseSize);
-    setWaterRes(watch.specs.waterResistance);
-    setCrystal(watch.specs.crystal);
-    setMovement(watch.specs.movement);
-    setWatchStock(watch.stock);
-    setWatchRating(watch.rating);
+    setCaseSize(watch.specs?.caseSize || '42mm Titanium');
+    setWaterRes(watch.specs?.waterResistance || '100m / 330ft');
+    setCrystal(watch.specs?.crystal || 'Domed Sapphire');
+    setMovement(watch.specs?.movement || 'Automatic Movement');
+    setWatchStock(watch.stock != null ? watch.stock : 10);
+    setWatchRating(watch.rating != null ? watch.rating : 4.8);
     setIsAddingWatch(true);
   };
 
@@ -851,7 +851,7 @@ export default function MasterDashboard({
                           </div>
                         </td>
                         <td className="p-4 text-[10px] text-stone-450 max-w-[200px] truncate">
-                          {w.specs.caseSize} • {w.specs.movement}
+                          {w.specs?.caseSize || 'Standard'} • {w.specs?.movement || 'Automatic'}
                         </td>
                         <td className="p-4">
                           <div className="flex justify-center items-center space-x-1.5">

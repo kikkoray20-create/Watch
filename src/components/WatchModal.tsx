@@ -189,19 +189,19 @@ export default function WatchModal({ watch, onClose, onAddToCart }: WatchModalPr
                       <tbody>
                         <tr className="border-b border-white/5 pb-2">
                           <td className="py-2.5 font-mono text-stone-500 w-1/3">Calibre Movement</td>
-                          <td className="py-2.5 text-stone-200 font-medium">{watch.specs.movement}</td>
+                          <td className="py-2.5 text-stone-200 font-medium">{watch.specs?.movement || 'Standard Calibre'}</td>
                         </tr>
                         <tr className="border-b border-white/5 pb-2">
                           <td className="py-2.5 font-mono text-stone-500">Dimensions (Case)</td>
-                          <td className="py-2.5 text-stone-200 font-medium">{watch.specs.caseSize}</td>
+                          <td className="py-2.5 text-stone-200 font-medium">{watch.specs?.caseSize || 'Standard Dimensions'}</td>
                         </tr>
                         <tr className="border-b border-white/5 pb-2">
                           <td className="py-2.5 font-mono text-stone-500">Crystal Glass</td>
-                          <td className="py-2.5 text-stone-200 font-medium">{watch.specs.crystal}</td>
+                          <td className="py-2.5 text-stone-200 font-medium">{watch.specs?.crystal || 'Sapphire Crystal'}</td>
                         </tr>
                         <tr>
                           <td className="py-2.5 font-mono text-stone-500">Water Resistance Rating</td>
-                          <td className="py-2.5 text-emerald-400 font-semibold">{watch.specs.waterResistance}</td>
+                          <td className="py-2.5 text-emerald-400 font-semibold">{watch.specs?.waterResistance || 'Standard Water Resistance'}</td>
                         </tr>
                       </tbody>
                     </table>

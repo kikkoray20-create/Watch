@@ -928,10 +928,10 @@ export default function App() {
   const filteredProducts = catalog.filter((watch) => {
     const matchesCategory = selectedCategory === 'all' || watch.category === selectedCategory;
     const matchesQuery =
-      watch.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      watch.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      watch.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      watch.specs.movement.toLowerCase().includes(searchQuery.toLowerCase());
+      (watch.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (watch.brand || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (watch.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (watch.specs?.movement || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesQuery;
   });
 
