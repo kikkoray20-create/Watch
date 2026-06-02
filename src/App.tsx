@@ -16,6 +16,14 @@ import { ShieldCheck, ArrowRight, Info, Clock, AlertCircle } from 'lucide-react'
 import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, configDiagnostics } from './firebase';
 
+const safeLocalStorageSetItem = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.error(`[LocalStorage Error] Failed to write key "${key}". It may exceed quota bounds:`, error);
+  }
+};
+
 export default function App() {
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('chronos_cart');
@@ -378,22 +386,22 @@ export default function App() {
 
   // Sync cart to local storage (Cart is purely client side session)
   useEffect(() => {
-    localStorage.setItem('chronos_cart', JSON.stringify(cart));
+    safeLocalStorageSetItem('chronos_cart', JSON.stringify(cart));
   }, [cart]);
 
   // Sync user profile state locally as well
   useEffect(() => {
-    localStorage.setItem('chronos_user', JSON.stringify(currentUser));
+    safeLocalStorageSetItem('chronos_user', JSON.stringify(currentUser));
   }, [currentUser]);
 
   // Sync catalog timeline details to local storage backing
   useEffect(() => {
-    localStorage.setItem('chronos_catalog', JSON.stringify(catalog));
+    safeLocalStorageSetItem('chronos_catalog', JSON.stringify(catalog));
   }, [catalog]);
 
   // Sync custom boutique configuration settings to local storage
   useEffect(() => {
-    localStorage.setItem('chronos_settings', JSON.stringify(boutiqueSettings));
+    safeLocalStorageSetItem('chronos_settings', JSON.stringify(boutiqueSettings));
   }, [boutiqueSettings]);
 
   // Trigger floating alert banners
@@ -506,7 +514,7 @@ export default function App() {
       const saved = localStorage.getItem('chronos_orders');
       const existingOrders = saved ? JSON.parse(saved) : [];
       const cleaned = existingOrders.filter((o: CompactOrder) => o.id !== newOrder.id);
-      localStorage.setItem('chronos_orders', JSON.stringify([newOrder, ...cleaned]));
+      safeLocalStorageSetItem('chronos_orders', JSON.stringify([newOrder, ...cleaned]));
     } catch (e) {
       console.error('Error syncing order to local storage master index:', e);
     }
@@ -608,7 +616,7 @@ export default function App() {
       if (saved) {
         const allOrders: CompactOrder[] = JSON.parse(saved);
         const updated = allOrders.map((ord) => ord.id === orderId ? { ...ord, status } : ord);
-        localStorage.setItem('chronos_orders', JSON.stringify(updated));
+        safeLocalStorageSetItem('chronos_orders', JSON.stringify(updated));
       }
     } catch (e) {
       console.error('Error updating order status in local storage master index:', e);
@@ -641,7 +649,7 @@ export default function App() {
         if (saved) {
           const allOrders: CompactOrder[] = JSON.parse(saved);
           const filtered = allOrders.filter((ord) => ord.id !== orderId);
-          localStorage.setItem('chronos_orders', JSON.stringify(filtered));
+          safeLocalStorageSetItem('chronos_orders', JSON.stringify(filtered));
         }
       } catch (e) {
         console.error('Error removing order from local storage master index:', e);
@@ -664,7 +672,7 @@ export default function App() {
           await deleteDoc(doc(db, 'orders', docSnap.id));
         }
         setOrders([]);
-        localStorage.setItem('chronos_orders', JSON.stringify([]));
+        safeLocalStorageSetItem('chronos_orders', JSON.stringify([]));
         triggerNotification('Dispatch tracking logs wiped from Firestore database.');
       } catch (e) {
         handleFirestoreError(e, OperationType.DELETE, 'orders');
@@ -688,7 +696,7 @@ export default function App() {
         ...(localUsers[updatedUser.email] || {}),
         ...updatedUser
       };
-      localStorage.setItem('boutique_users', JSON.stringify(localUsers));
+      safeLocalStorageSetItem('boutique_users', JSON.stringify(localUsers));
 
       if (!configDiagnostics.isUsingFallback) {
         await setDoc(doc(db, 'users', userIdKey), updatedUser, { merge: true });
@@ -711,7 +719,7 @@ export default function App() {
       try { localUsers = JSON.parse(localUsersStr); } catch (err) {}
       if (localUsers[email]) {
         delete localUsers[email];
-        localStorage.setItem('boutique_users', JSON.stringify(localUsers));
+        safeLocalStorageSetItem('boutique_users', JSON.stringify(localUsers));
       }
 
       if (!configDiagnostics.isUsingFallback) {
@@ -917,7 +925,7 @@ export default function App() {
         memberTier: 'Loyal Collector',
         loyaltyPoints: 15,
       };
-      localStorage.setItem('boutique_users', JSON.stringify(localUsers));
+      safeLocalStorageSetItem('boutique_users', JSON.stringify(localUsers));
 
       setCurrentUser(newProfile);
       triggerNotification('Offline Sign Up Completed!');

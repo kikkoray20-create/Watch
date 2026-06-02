@@ -66,7 +66,11 @@ export default function WatchPage({
 
   // Sync reviews to storage
   useEffect(() => {
-    localStorage.setItem(`chronos_reviews_${watch.id}`, JSON.stringify(reviews));
+    try {
+      localStorage.setItem(`chronos_reviews_${watch.id}`, JSON.stringify(reviews));
+    } catch (e) {
+      console.error('[LocalStorage Error] Failed to persist review:', e);
+    }
   }, [reviews, watch.id]);
 
   // Handle review submission
