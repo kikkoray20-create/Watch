@@ -587,7 +587,12 @@ export default function App() {
       }
       triggerNotification('Inventory catalog synced down to Firestore cloud successfully!');
     } catch (e) {
-      handleFirestoreError(e, OperationType.WRITE, 'watches');
+      try {
+        handleFirestoreError(e, OperationType.WRITE, 'watches');
+      } catch (thrownErr) {
+        console.warn("Continuing with local fallback after logging Firestore watches error on write.", thrownErr);
+        triggerNotification('Catalog updated locally (Firestore database write skipped/disallowed).');
+      }
     }
   };
 
@@ -725,7 +730,12 @@ export default function App() {
       await setDoc(doc(db, 'settings', 'boutique_config'), newSettings);
       triggerNotification('Store layout and policies updated in Firestore.');
     } catch (e) {
-      handleFirestoreError(e, OperationType.WRITE, 'settings/boutique_config');
+      try {
+        handleFirestoreError(e, OperationType.WRITE, 'settings/boutique_config');
+      } catch (thrownErr) {
+        console.warn("Continuing with local fallback after logging Firestore settings error on write.", thrownErr);
+        triggerNotification('Layout updated locally (Firestore database write skipped/disallowed).');
+      }
     }
   };
 
@@ -737,7 +747,12 @@ export default function App() {
       }
       triggerNotification('Swiss defaults restored and written to Firestore!');
     } catch (e) {
-      handleFirestoreError(e, OperationType.WRITE, 'watches');
+      try {
+        handleFirestoreError(e, OperationType.WRITE, 'watches');
+      } catch (thrownErr) {
+        console.warn("Continuing with local fallback after logging Firestore restoring errors on write.", thrownErr);
+        triggerNotification('Swiss defaults restored locally (Firestore write skipped/disallowed).');
+      }
     }
   };
 

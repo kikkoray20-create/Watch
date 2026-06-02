@@ -159,6 +159,19 @@ export default function MasterDashboard({
   const [jsonPaste, setJsonPaste] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+
+  const handleJsonFileLoad = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (typeof event.target?.result === 'string') {
+        setJsonPaste(event.target.result);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Calculate order metrics
   const totalRevenues = orders.reduce((acc, o) => acc + o.total, 0);
@@ -428,19 +441,144 @@ export default function MasterDashboard({
           <div className="space-y-6">
             
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-mono tracking-widest text-[#999999] uppercase select-none">
+              <h3 className="text-sm font-mono tracking-widest text-[#999999] uppercase select-none font-bold">
                 Boutique Inventory Shelf
               </h3>
               {!isAddingWatch && (
-                <button
-                  onClick={() => { resetWatchForm(); setIsAddingWatch(true); }}
-                  className="bg-amber-500/10 border border-amber-500/30 text-amber-505 hover:bg-amber-500 hover:text-black hover:border-amber-500 px-3.5 py-1.5 rounded-lg text-[11px] font-mono transition-all font-bold tracking-widest uppercase flex items-center space-x-1 cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Curate New Timepiece</span>
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowBulkUpload(!showBulkUpload); }}
+                    className={`border px-3.5 py-1.5 rounded-lg text-[11px] font-mono transition-all font-bold tracking-widest uppercase flex items-center space-x-1.5 cursor-pointer ${
+                      showBulkUpload 
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-500' 
+                        : 'bg-[#151515] border-white/10 text-stone-300 hover:bg-[#202020]'
+                    }`}
+                  >
+                    <Database className="h-3.5 w-3.5" />
+                    <span>{showBulkUpload ? 'Close Bulk Import' : 'Bulk Import / Export'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { resetWatchForm(); setIsAddingWatch(true); }}
+                    className="bg-amber-500/10 border border-amber-500/30 text-amber-505 hover:bg-amber-500 hover:text-black hover:border-amber-500 px-3.5 py-1.5 rounded-lg text-[11px] font-mono transition-all font-bold tracking-widest uppercase flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Curate New Timepiece</span>
+                  </button>
+                </div>
               )}
             </div>
+
+            {showBulkUpload && !isAddingWatch && (
+              <div className="bg-[#0c0c0c] border border-white/5 p-6 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <div>
+                    <h4 className="font-serif text-sm text-white font-bold">
+                      Bulk Catalog Import / Export Console
+                    </h4>
+                    <p className="text-[10px] text-stone-400 font-mono mt-0.5">
+                      Upload a JSON file or paste records to bulk deploy or download your boutique shelf catalog.
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={handleLoadCurrentJSON}
+                      className="px-3 py-1.5 bg-[#1a1a1a] border border-white/10 text-white rounded-lg text-[10px] font-mono hover:bg-[#222] transition-colors"
+                    >
+                      Export/Load Current Storefront Catalog
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkUpload(false)}
+                      className="text-stone-400 hover:text-white font-mono text-[10px] uppercase cursor-pointer"
+                    >
+                      Close Import
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* JSON TextArea */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">
+                        JSON Array Editor
+                      </label>
+                      <span className="text-[9px] text-[#777] font-mono">[{"{"}id, name, brand, price...{"}"}]</span>
+                    </div>
+                    <form onSubmit={handleBulkUploadSubmit} className="space-y-2">
+                      <textarea
+                        rows={10}
+                        value={jsonPaste}
+                        onChange={(e) => setJsonPaste(e.target.value)}
+                        placeholder='[\n  {\n    "id": "royal-oak",\n    "name": "Royal Oak Skeleton",\n    "brand": "Audemars Piguet",\n    "price": 250000,\n    "category": "prestige",\n    "imageUrl": "https://images.unsplash.com/...",\n    "description": "...",\n    "stock": 5,\n    "rating": 4.9\n  }\n]'
+                        className="w-full p-3 bg-[#050505] border border-white/10 rounded-xl text-[11px] text-stone-300 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 leading-relaxed"
+                      />
+                      <div className="flex justify-between items-center">
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold border border-amber-500 text-xs rounded-xl font-mono transition-colors cursor-pointer"
+                        >
+                          ✓ Apply & Publish Bulk Catalog JSON
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setJsonPaste('')}
+                          className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-[10px] text-stone-400 font-mono rounded-lg transition-colors cursor-pointer"
+                        >
+                          Clear Text
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* File Import Checklist & Loader */}
+                  <div className="bg-[#121212]/30 border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block font-bold">
+                        Catalog File Import (.JSON)
+                      </label>
+                      
+                      <div className="border border-dashed border-white/10 rounded-lg p-5 flex flex-col items-center justify-center text-center bg-black/40 relative">
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={handleJsonFileLoad}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                        <Upload className="h-6 w-6 text-stone-500 mb-2 animate-bounce" />
+                        <span className="text-[11px] text-stone-300 font-medium">Click to select catalog JSON file</span>
+                        <span className="text-[9px] text-[#666] mt-0.5">Supports standard UTF-8 JSON array format</span>
+                      </div>
+
+                      <div className="space-y-2 text-[10px] text-stone-400 leading-relaxed font-sans">
+                        <p className="font-semibold text-stone-200">💡 Import Requirements Checklist:</p>
+                        <ul className="list-disc pl-4 space-y-1">
+                          <li>File must validate to a standard JSON list: <code className="font-mono text-amber-500">[ ... ]</code>.</li>
+                          <li>Each watch node requires a unique <code className="font-mono text-white">id</code>, <code className="font-mono text-white">name</code>, <code className="font-mono text-white">brand</code>, and a numeric <code className="font-mono text-white">price</code> (Rupees).</li>
+                          <li>Ensure correct category classification according to currently configured boutique classifications.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-white/5">
+                      {uploadError && (
+                        <div className="p-3 bg-red-950/20 border border-red-900/40 text-red-400 text-[10px] rounded-lg font-mono leading-relaxed">
+                          ⚠️ {uploadError}
+                        </div>
+                      )}
+                      {uploadSuccess && (
+                        <div className="p-3 bg-emerald-950/20 border border-emerald-900/40 text-emerald-400 text-[10px] rounded-lg font-mono">
+                          🎉 Storefront Catalog updated and synced successfully!
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {isAddingWatch ? (
               /* Timepiece Form (Add / Edit) */
