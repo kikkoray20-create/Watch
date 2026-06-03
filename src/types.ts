@@ -125,3 +125,11 @@ export interface LendingProposal {
   trackingNumber?: string;
 }
 
+export interface StoreAnalytics {
+  totalPageViews: number;
+  uniqueVisitors: number;
+  productClicks: Record<string, number>;
+  referrers: Record<string, number>;
+}
+
+

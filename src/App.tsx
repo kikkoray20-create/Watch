@@ -10,7 +10,7 @@ import LoginModal from './components/LoginModal';
 import MasterDashboard from './components/MasterDashboard';
 
 import { products } from './data/products';
-import { CartItem, WatchModel, CheckoutDetails, UserProfile, CompactOrder, BoutiqueSettings, LendingProposal } from './types';
+import { CartItem, WatchModel, CheckoutDetails, UserProfile, CompactOrder, BoutiqueSettings, LendingProposal, StoreAnalytics } from './types';
 import { ShieldCheck, ArrowRight, Info, Clock, AlertCircle } from 'lucide-react';
 
 // Firebase Database & Authentication Setup
@@ -168,6 +168,225 @@ export default function App() {
 
   // List of all registered lending proposals
   const [lendingProposals, setLendingProposals] = useState<LendingProposal[]>([]);
+
+  const [analytics, setAnalytics] = useState<StoreAnalytics>({
+    totalPageViews: 0,
+    uniqueVisitors: 0,
+    productClicks: {},
+    referrers: {}
+  });
+
+  const trackPageViewAndReferrer = async () => {
+    // Generate a unique device ID if not present
+    let visitorId = localStorage.getItem('chronos_visitor_id');
+    let isNewVisitor = false;
+    if (!visitorId) {
+      visitorId = 'visitor_' + Math.random().toString(36).substring(2, 15);
+      safeLocalStorageSetItem('chronos_visitor_id', visitorId);
+      isNewVisitor = true;
+    }
+
+    // Determine referrer/source
+    const params = new URLSearchParams(window.location.search);
+    let source = params.get('ref') || params.get('source') || params.get('utm_source');
+    if (!source) {
+      const ref = document.referrer;
+      if (ref) {
+        try {
+          const host = new URL(ref).hostname;
+          if (host.includes('instagram.com')) source = 'Instagram';
+          else if (host.includes('facebook.com')) source = 'Facebook';
+          else if (host.includes('youtube.com')) source = 'YouTube';
+          else if (host.includes('google.com')) source = 'Google Search';
+          else if (host.includes('twitter.com') || host.includes('t.co')) source = 'Twitter/X';
+          else source = host;
+        } catch (e) {
+          source = 'External Link';
+        }
+      } else {
+        source = 'Direct Traffic';
+      }
+    } else {
+      // capital first letter or known mappings
+      if (source.toLowerCase() === 'reels') source = 'Instagram Reels';
+      else if (source.toLowerCase() === 'derek') source = 'Derek Showcase';
+      else if (source.toLowerCase() === 'instagram') source = 'Instagram';
+      else source = source.charAt(0).toUpperCase() + source.slice(1);
+    }
+
+    // Load or merge with existing local analytics
+    let localAnalytics: StoreAnalytics = {
+      totalPageViews: 0,
+      uniqueVisitors: 0,
+      productClicks: {},
+      referrers: {}
+    };
+    const saved = localStorage.getItem('chronos_analytics');
+    if (saved) {
+      try {
+        localAnalytics = JSON.parse(saved);
+      } catch (e) {
+        // invalid JSON
+      }
+    }
+
+    localAnalytics.totalPageViews = (localAnalytics.totalPageViews || 0) + 1;
+    if (isNewVisitor) {
+      localAnalytics.uniqueVisitors = (localAnalytics.uniqueVisitors || 0) + 1;
+    }
+    localAnalytics.referrers[source] = (localAnalytics.referrers[source] || 0) + 1;
+
+    setAnalytics(localAnalytics);
+    safeLocalStorageSetItem('chronos_analytics', JSON.stringify(localAnalytics));
+
+    // Update Cloud
+    try {
+      if (!configDiagnostics.isUsingFallback) {
+        const docRef = doc(db, 'analytics', 'dashboard');
+        const docSnap = await getDoc(docRef);
+        let cloudAnalytics: StoreAnalytics = {
+          totalPageViews: 0,
+          uniqueVisitors: 0,
+          productClicks: {},
+          referrers: {}
+        };
+        if (docSnap.exists()) {
+          cloudAnalytics = docSnap.data() as StoreAnalytics;
+        }
+
+        // Merge and update
+        const merged: StoreAnalytics = {
+          totalPageViews: (cloudAnalytics.totalPageViews || 0) + 1,
+          uniqueVisitors: (cloudAnalytics.uniqueVisitors || 0) + (isNewVisitor ? 1 : 0),
+          productClicks: cloudAnalytics.productClicks || {},
+          referrers: cloudAnalytics.referrers || {}
+        };
+        merged.referrers[source] = (merged.referrers[source] || 0) + 1;
+
+        // Keep clicked products intact
+        Object.keys(localAnalytics.productClicks || {}).forEach(pid => {
+          if (!merged.productClicks[pid]) {
+            merged.productClicks[pid] = localAnalytics.productClicks[pid];
+          } else {
+            merged.productClicks[pid] = Math.max(merged.productClicks[pid], localAnalytics.productClicks[pid]);
+          }
+        });
+
+        await setDoc(docRef, merged, { merge: true });
+      }
+    } catch (e) {
+      console.warn("Could not save cloud analytics: ", e);
+    }
+  };
+
+  const trackProductClick = async (watchId: string) => {
+    // 1. Update State & LocalStorage
+    setAnalytics((prev) => {
+      const updated = {
+        ...prev,
+        productClicks: {
+          ...(prev.productClicks || {}),
+          [watchId]: ((prev.productClicks?.[watchId]) || 0) + 1
+        }
+      };
+      safeLocalStorageSetItem('chronos_analytics', JSON.stringify(updated));
+      return updated;
+    });
+
+    // 2. Update Cloud
+    try {
+      if (!configDiagnostics.isUsingFallback) {
+        const docRef = doc(db, 'analytics', 'dashboard');
+        const docSnap = await getDoc(docRef);
+        let cloudAnalytics: StoreAnalytics = {
+          totalPageViews: 1,
+          uniqueVisitors: 1,
+          productClicks: {},
+          referrers: { 'Direct Traffic': 1 }
+        };
+        if (docSnap.exists()) {
+          cloudAnalytics = docSnap.data() as StoreAnalytics;
+        }
+
+        const newClicks = {
+          ...(cloudAnalytics.productClicks || {}),
+          [watchId]: ((cloudAnalytics.productClicks?.[watchId]) || 0) + 1
+        };
+
+        await setDoc(docRef, { productClicks: newClicks }, { merge: true });
+      }
+    } catch (e) {
+      console.warn("Could not save cloud product click: ", e);
+    }
+  };
+
+  const handleClearAnalytics = async () => {
+    const emptyStats: StoreAnalytics = {
+      totalPageViews: 0,
+      uniqueVisitors: 0,
+      productClicks: {},
+      referrers: {}
+    };
+    setAnalytics(emptyStats);
+    safeLocalStorageSetItem('chronos_analytics', JSON.stringify(emptyStats));
+
+    try {
+      if (!configDiagnostics.isUsingFallback) {
+        const docRef = doc(db, 'analytics', 'dashboard');
+        await setDoc(docRef, emptyStats);
+      }
+    } catch (e) {
+      console.error("Failed to reset Firestore analytics: ", e);
+    }
+  };
+
+  const handleSelectWatchPage = (watch: WatchModel) => {
+    setActiveWatchPage(watch);
+    trackProductClick(watch.id);
+  };
+
+  // Real-time Analytics Dashboard Listener
+  useEffect(() => {
+    let unsubscribe: () => void = () => {};
+
+    const setupAnalyticsListener = () => {
+      const saved = localStorage.getItem('chronos_analytics');
+      if (saved) {
+        try {
+          setAnalytics(JSON.parse(saved));
+        } catch (e) {
+          // invalid json fallback
+        }
+      }
+
+      if (configDiagnostics.isUsingFallback) {
+        return;
+      }
+
+      try {
+        const docRef = doc(db, 'analytics', 'dashboard');
+        unsubscribe = onSnapshot(docRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data() as StoreAnalytics;
+            setAnalytics(data);
+            safeLocalStorageSetItem('chronos_analytics', JSON.stringify(data));
+          }
+        }, (error) => {
+          console.warn("Firestore analytics listener error: ", error);
+        });
+      } catch (err) {
+        console.error("Failed to setup analytics listener: ", err);
+      }
+    };
+
+    setupAnalyticsListener();
+    return () => unsubscribe();
+  }, []);
+
+  // Track page view and referrer on mount
+  useEffect(() => {
+    trackPageViewAndReferrer();
+  }, []);
 
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
@@ -1239,6 +1458,8 @@ export default function App() {
             onUpdateLendingStatus={handleUpdateLendingStatus}
             onRemoveLendingProposal={handleRemoveLendingProposal}
             onClearLendingProposals={handleClearLendingProposals}
+            analytics={analytics}
+            onClearAnalytics={handleClearAnalytics}
           />
         ) : isLendingPageActive ? (
           <LendingPage
@@ -1260,7 +1481,7 @@ export default function App() {
             }}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
-            onSelectAnotherWatch={(wt) => setActiveWatchPage(wt)}
+            onSelectAnotherWatch={handleSelectWatchPage}
             warrantyActive={boutiqueSettings.warrantyActive}
             catalog={catalog}
           />
@@ -1298,10 +1519,9 @@ export default function App() {
                       </a>
                     </div>
                   </div>
-
-                  {/* Right Column Interactive Featured Hero Watch */}
+ 
                   <div className="lg:col-span-5 relative flex justify-center">
-                    <div className="relative h-[280px] sm:h-[340px] w-[280px] sm:w-[340px] bg-[#0e0e0e] rounded-full shadow-[0_20px_50px_rgba(245,158,11,0.05)] border border-white/5 flex items-center justify-center p-6 group cursor-pointer" onClick={() => setActiveWatchPage(products[1])}>
+                    <div className="relative h-[280px] sm:h-[340px] w-[280px] sm:w-[340px] bg-[#0e0e0e] rounded-full shadow-[0_20px_50px_rgba(245,158,11,0.05)] border border-white/5 flex items-center justify-center p-6 group cursor-pointer" onClick={() => handleSelectWatchPage(products[1])}>
                       <img
                         src={products[1].imageUrl}
                         alt="Featured Golden Tourbillon"
@@ -1372,7 +1592,7 @@ export default function App() {
                     <WatchCard
                       key={watch.id}
                       watch={watch}
-                      onSelect={(wt) => setActiveWatchPage(wt)}
+                      onSelect={handleSelectWatchPage}
                       onAddToCart={handleAddToCart}
                     />
                   ))}

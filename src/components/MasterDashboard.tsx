@@ -24,9 +24,12 @@ import {
   Search,
   Sparkles,
   Award,
-  Star
+  Star,
+  Eye,
+  MousePointerClick,
+  Globe
 } from 'lucide-react';
-import { WatchModel, CompactOrder, BoutiqueSettings, UserProfile, LendingProposal } from '../types';
+import { WatchModel, CompactOrder, BoutiqueSettings, UserProfile, LendingProposal, StoreAnalytics } from '../types';
 import InvoiceModal from './InvoiceModal';
 
 interface MasterDashboardProps {
@@ -47,6 +50,8 @@ interface MasterDashboardProps {
   onUpdateLendingStatus?: (proposalId: string, status: LendingProposal['status'], labelText?: string) => Promise<void> | void;
   onRemoveLendingProposal?: (proposalId: string) => Promise<void> | void;
   onClearLendingProposals?: () => Promise<void> | void;
+  analytics?: StoreAnalytics;
+  onClearAnalytics?: () => void;
 }
 
 export default function MasterDashboard({
@@ -67,8 +72,10 @@ export default function MasterDashboard({
   onUpdateLendingStatus,
   onRemoveLendingProposal,
   onClearLendingProposals,
+  analytics = { totalPageViews: 0, uniqueVisitors: 0, productClicks: {}, referrers: {} },
+  onClearAnalytics,
 }: MasterDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customers' | 'customizer' | 'lending'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customers' | 'customizer' | 'lending' | 'analytics'>('catalog');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<CompactOrder | null>(null);
   
   // Settings Drafts for Boutique customizer
@@ -483,6 +490,18 @@ export default function MasterDashboard({
           >
             <Award className="h-3.5 w-3.5" />
             <span>Watch Loans ({lendingProposals.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-4 py-2.5 text-xs font-mono tracking-wider transition-all flex items-center space-x-1.5 border-b-2 cursor-pointer ${
+              activeTab === 'analytics'
+                ? 'border-amber-500 text-amber-500 font-bold bg-[#121212]'
+                : 'border-transparent text-stone-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <TrendingUp className="h-3.5 w-3.5 text-purple-400" />
+            <span className="text-purple-400">Traffic & Insights</span>
           </button>
         </div>
       </div>
@@ -2090,6 +2109,184 @@ export default function MasterDashboard({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 6: TRAFFIC AND CLICK INSIGHTS */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4 select-none">
+              <div>
+                <h3 className="text-sm font-mono uppercase tracking-widest text-[#a855f7] flex items-center space-x-2">
+                  <span className="h-2 w-2 rounded-full bg-purple-500 animate-pulse"></span>
+                  <span>Storefront Traffic & Product Clicks Analytics</span>
+                </h3>
+                <p className="text-stone-400 text-xs mt-1">
+                  Monitor live page visitors, referral channels, and catalog engagement. Perfect for tracking organic traffic from Instagram Reels.
+                </p>
+              </div>
+              {onClearAnalytics && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to reset all analytics logs? This will wipe views, clicks, and traffic referrers.")) {
+                      onClearAnalytics();
+                    }
+                  }}
+                  className="px-4 py-2 bg-rose-950/20 text-rose-450 hover:bg-rose-900/40 border border-rose-900/40 text-[11px] font-mono rounded-lg transition-all cursor-pointer"
+                >
+                  RESET ANALYTICS LOGS
+                </button>
+              )}
+            </div>
+
+            {/* Metric Summary Rows */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4.5 space-y-1 relative overflow-hidden group">
+                <div className="absolute top-3 right-3 p-1.5 bg-purple-500/10 rounded-lg text-purple-400 group-hover:scale-110 transition-transform">
+                  <Eye className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider block">Total Page Views</span>
+                <span className="text-2xl font-mono font-bold text-white block">
+                  {analytics.totalPageViews?.toLocaleString() || 0}
+                </span>
+                <p className="text-[10px] text-stone-400/80">Raw browser window displays loaded.</p>
+              </div>
+
+              <div className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4.5 space-y-1 relative overflow-hidden group">
+                <div className="absolute top-3 right-3 p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform">
+                  <Users className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider block">Unique Visitors</span>
+                <span className="text-2xl font-mono font-bold text-emerald-400 block">
+                  {analytics.uniqueVisitors?.toLocaleString() || 0}
+                </span>
+                <p className="text-[10px] text-stone-400/80">Unique browsers tracked via cookie signatures.</p>
+              </div>
+
+              <div className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4.5 space-y-1 relative overflow-hidden group">
+                <div className="absolute top-3 right-3 p-1.5 bg-amber-500/10 rounded-lg text-amber-500 group-hover:scale-110 transition-transform">
+                  <MousePointerClick className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider block">Product Clicks (Engagement)</span>
+                <span className="text-2xl font-mono font-bold text-amber-500 block">
+                  {Object.values(analytics.productClicks || {}).reduce((a, b) => a + b, 0).toLocaleString()}
+                </span>
+                <p className="text-[10px] text-stone-400/80">Total clicks recorded on watch collection item cards.</p>
+              </div>
+            </div>
+
+            {/* Split layout: Traffic Sources (Left) vs Product Catalog Clicks (Right) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Left Column: Traffic Sources Breakdown */}
+              <div className="lg:col-span-5 bg-[#0e0e0e] border border-white/5 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center space-x-2 border-b border-white/5 pb-3">
+                  <Globe className="h-4 w-4 text-purple-400" />
+                  <h4 className="text-xs font-mono font-bold tracking-wider text-stone-200 uppercase">
+                    Traffic Channels & Referrers (Aane wale sources)
+                  </h4>
+                </div>
+
+                {Object.keys(analytics.referrers || {}).length === 0 ? (
+                  <p className="text-xs italic text-stone-500 font-mono py-12 text-center">
+                    No traffic channels tracked yet.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {Object.entries(analytics.referrers || {})
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([source, count]) => {
+                        const total = Object.values(analytics.referrers || {}).reduce((x, y) => x + y, 0) || 1;
+                        const pct = Math.round((count / total) * 100);
+                        return (
+                          <div key={source} className="space-y-1">
+                            <div className="flex justify-between text-xs font-mono">
+                              <span className="text-stone-300 font-bold hover:text-white flex items-center space-x-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-purple-500"></span>
+                                <span>{source}</span>
+                              </span>
+                              <span className="text-stone-455">
+                                {count} clicks <span className="text-purple-400 font-bold">({pct}%)</span>
+                              </span>
+                            </div>
+                            <div className="h-2 w-full bg-[#181818] rounded-full overflow-hidden border border-white/[0.03]">
+                              <div
+                                className="h-full bg-gradient-to-r from-[#a855f7] to-[#d946ef] rounded-full transition-all duration-1000"
+                                style={{ width: `${pct}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+                
+                <div className="text-[10px] text-stone-500 p-3 bg-stone-900/30 rounded-xl leading-relaxed font-mono">
+                  💡 <b>Tip:</b> If link contains <code className="text-amber-500">?ref=instagram</code>, the app registers the traffic referrer source as <b>"Instagram"</b> instantly.
+                </div>
+              </div>
+
+              {/* Right Column: Watch Clicks Standings */}
+              <div className="lg:col-span-7 bg-[#0e0e0e] border border-white/5 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <MousePointerClick className="h-4 w-4 text-amber-500" />
+                    <h4 className="text-xs font-mono font-bold tracking-wider text-stone-200 uppercase">
+                      Individual Chronometer Clicks Standings
+                    </h4>
+                  </div>
+                  <span className="text-[10px] text-stone-500 font-mono">
+                    Total: {catalog.length} Models
+                  </span>
+                </div>
+
+                <div className="space-y-2 max-h-[380px] overflow-y-auto scrollbar-thin pr-1">
+                  {catalog
+                    .map((watch) => {
+                      const count = analytics.productClicks?.[watch.id] || 0;
+                      return { watch, count };
+                    })
+                    .sort((a, b) => b.count - a.count)
+                    .map(({ watch, count }, rankIdx) => {
+                      const maxClick = Math.max(...Object.values(analytics.productClicks || {}), 1);
+                      const relativePct = Math.round((count / maxClick) * 100);
+
+                      return (
+                        <div
+                          key={watch.id}
+                          className="p-3 bg-[#121212]/50 hover:bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between gap-4 font-mono transition-colors"
+                        >
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <span className={`text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold ${
+                              rankIdx === 0 ? 'bg-amber-550/15 text-amber-500' : 'bg-stone-900 text-stone-550'
+                            }`}>
+                              {rankIdx === 0 ? '👑' : `${rankIdx + 1}`}
+                            </span>
+                            <div className="min-w-0">
+                              <span className="text-[11px] text-stone-300 font-bold block truncate">{watch.brand} {watch.name}</span>
+                              <span className="text-[9px] text-stone-500 block truncate">Catalog Reference ID: {watch.id}</span>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-xs font-bold text-white block">
+                              {count} clicks
+                            </span>
+                            <div className="w-16 h-1 mt-1 bg-stone-900 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-amber-500"
+                                style={{ width: `${relativePct}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
 
