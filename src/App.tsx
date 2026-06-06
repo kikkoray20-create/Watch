@@ -1370,6 +1370,74 @@ export default function App() {
     return matchesCategory && matchesQuery;
   });
 
+  if (firebaseConnected === false) {
+    // Console log standard unhandled network crash for complete diagnostic realism
+    console.error("GET https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel net::ERR_CONNECTION_REFUSED");
+    
+    return (
+      <div 
+        className="min-h-screen bg-[#f7f7f7] text-[#3c4043] flex items-center justify-center p-6 select-none" 
+        style={{ 
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif' 
+        }}
+        id="browser-default-error-screen"
+      >
+        <div className="max-w-[490px] w-full space-y-6 text-left">
+          {/* Chromium Standard Folded Page / Dino outline indicator */}
+          <div className="w-16 h-16 text-[#5f6368] flex items-center justify-start select-none">
+            <svg viewBox="0 0 24 24" className="w-14 h-14 fill-current">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+            </svg>
+          </div>
+          
+          <div className="space-y-3">
+            <h1 className="text-[22px] font-normal text-[#202124] tracking-normal leading-snug">
+              This site can’t be reached
+            </h1>
+            <p className="text-sm text-[#5f6368] leading-relaxed">
+              The webpage at <strong>{window.location.origin}</strong> might be temporarily down or it may have moved permanently to a new web address.
+            </p>
+          </div>
+
+          <div className="space-y-4 pt-1">
+            <p className="text-[13px] text-[#5f6368] font-bold">
+              Try:
+            </p>
+            <ul className="list-disc pl-5 space-y-2 text-[13px] text-[#5f6368]">
+              <li>Checking the connection</li>
+              <li>Checking the proxy and the firewall</li>
+              <li>Running Windows Network Diagnostics</li>
+            </ul>
+          </div>
+
+          <div className="border-t border-[#e8eaed] pt-4 flex flex-col space-y-1.5 font-mono text-[11px] text-[#5f6368]">
+            <div>
+              <span className="font-semibold">ERR_CONNECTION_REFUSED</span>
+            </div>
+            <div className="text-[10px] text-stone-500 font-sans mt-1">
+              * Standard Browser error triggered because the remote Firebase database instance is currently unconfigured or failed to respond.
+            </div>
+          </div>
+
+          <div className="pt-4 flex items-center justify-between">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-[#1a73e8] hover:bg-[#1557b0] text-white font-medium text-xs px-[24px] py-[10px] rounded-[4px] hover:shadow-xs transition-colors cursor-pointer"
+            >
+              Reload
+            </button>
+            <button 
+              onClick={() => window.location.replace('about:blank')}
+              className="text-[#1a73e8] hover:bg-[#f4f8ff] font-medium text-xs px-3 py-2 rounded-[4px] transition-colors cursor-pointer"
+            >
+              Close Page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col justify-between bg-[#050505] text-[#e0e0e0]" id="app-root-container">
       
