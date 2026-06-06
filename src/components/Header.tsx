@@ -16,6 +16,7 @@ interface HeaderProps {
   storeName?: string;
   categories?: string[];
   hideCategoryShelf?: boolean;
+  firebaseConnected?: boolean | null;
 }
 
 export default function Header({
@@ -31,6 +32,7 @@ export default function Header({
   storeName = 'CHRONOS',
   categories = ['sports', 'classic', 'minimalist', 'prestige'],
   hideCategoryShelf = false,
+  firebaseConnected = null,
 }: HeaderProps) {
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -48,19 +50,50 @@ export default function Header({
               transition={{ duration: 0.15 }}
               className="flex justify-between items-center h-20 gap-4"
             >
-              {/* Brand Logo */}
-              <div 
-                onClick={onLogoClick}
-                className="flex items-center space-x-3 cursor-pointer shrink-0 select-none"
-              >
-                <Clock className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 animate-pulse" />
-                <div>
-                  <span className="font-serif text-lg tracking-[0.3em] font-light text-white block sm:inline uppercase">
-                    {storeName}
-                  </span>
-                  <p className="text-[9px] font-mono tracking-widest text-amber-500/80 uppercase -mt-1 hidden sm:block">
-                    PREMIUM HOROLOGY
-                  </p>
+              {/* Brand Logo & DB status */}
+              <div className="flex items-center space-x-3 shrink-0">
+                <div 
+                  onClick={onLogoClick}
+                  className="flex items-center space-x-3 cursor-pointer select-none"
+                >
+                  <Clock className="h-6 w-6 sm:h-7 sm:w-7 text-amber-500 animate-pulse" />
+                  <div>
+                    <span className="font-serif text-lg tracking-[0.3em] font-light text-white block sm:inline uppercase">
+                      {storeName}
+                    </span>
+                    <p className="text-[9px] font-mono tracking-widest text-amber-500/80 uppercase -mt-1 hidden sm:block">
+                      PREMIUM HOROLOGY
+                    </p>
+                  </div>
+                </div>
+
+                {/* Firestore Database Live Indicator */}
+                <div className="hidden sm:flex items-center self-center pl-2 select-none border-l border-white/10 shrink-0">
+                  {firebaseConnected === true ? (
+                    <div 
+                      className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider font-semibold"
+                      title="Firestore Database Connected: Live Data Sync Active"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                      <span>FIREBASE LIVE</span>
+                    </div>
+                  ) : firebaseConnected === false ? (
+                    <div 
+                      className="px-2.5 py-1 bg-neutral-900 border border-white/10 text-stone-400 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider"
+                      title="Local Storage Fallback Active: DB Offline"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-stone-500"></span>
+                      <span>LOCAL DB FALLBACK</span>
+                    </div>
+                  ) : (
+                    <div 
+                      className="px-2.5 py-1 bg-[#121212] border border-white/5 text-stone-500 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider"
+                      title="Checking status..."
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500/40 animate-pulse"></span>
+                      <span>DB RESOLVING</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

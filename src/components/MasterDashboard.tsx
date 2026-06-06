@@ -27,7 +27,9 @@ import {
   Star,
   Eye,
   MousePointerClick,
-  Globe
+  Globe,
+  MessageSquare,
+  ExternalLink
 } from 'lucide-react';
 import { WatchModel, CompactOrder, BoutiqueSettings, UserProfile, LendingProposal, StoreAnalytics } from '../types';
 import InvoiceModal from './InvoiceModal';
@@ -52,6 +54,7 @@ interface MasterDashboardProps {
   onClearLendingProposals?: () => Promise<void> | void;
   analytics?: StoreAnalytics;
   onClearAnalytics?: () => void;
+  firebaseConnected?: boolean | null;
 }
 
 export default function MasterDashboard({
@@ -74,6 +77,7 @@ export default function MasterDashboard({
   onClearLendingProposals,
   analytics = { totalPageViews: 0, uniqueVisitors: 0, productClicks: {}, referrers: {} },
   onClearAnalytics,
+  firebaseConnected = null,
 }: MasterDashboardProps) {
   const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'customers' | 'customizer' | 'lending' | 'analytics'>('catalog');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<CompactOrder | null>(null);
@@ -392,6 +396,27 @@ export default function MasterDashboard({
           <h2 className="font-serif text-2xl font-semibold text-white mt-1.5 flex items-center space-x-2">
             <span>Boutique Horology Master Dashboard</span>
           </h2>
+        </div>
+
+        {/* Database Live Connected State Indicator */}
+        <div className="flex items-center space-x-2.5 bg-[#0a0a0a] px-4 py-2.5 rounded-xl border border-white/5 select-none font-mono">
+          <span className="text-[10px] text-stone-400">DATABASE:</span>
+          {firebaseConnected === true ? (
+            <div className="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-900/40 text-emerald-400 px-3 py-1 rounded-lg text-[10px] font-bold">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>FIREBASE ONLINE</span>
+            </div>
+          ) : firebaseConnected === false ? (
+            <div className="flex items-center space-x-2 bg-neutral-900 border border-white/10 text-stone-450 px-3 py-1 rounded-lg text-[10px]">
+              <span className="h-1.5 w-1.5 rounded-full bg-stone-500"></span>
+              <span>LOCAL FALLBACK</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2 bg-stone-900/50 border border-white/5 text-stone-500 px-3 py-1 rounded-lg text-[10px]">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500/40 animate-pulse"></span>
+              <span>DB VERIFYING</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1033,6 +1058,28 @@ export default function MasterDashboard({
                             <FileText className="h-3.5 w-3.5" />
                             <span>View Invoice</span>
                           </button>
+
+                          {/* WhatsApp Customer direct routing */}
+                          <a
+                            href={`https://wa.me/${order.shippingDetails?.email?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                              `*📢 ${settings.storeName || 'CHRONOS'} BOUTIQUE UPDATE*\n` +
+                              `---------------------------------------\n` +
+                              `Dear *${order.shippingDetails?.fullName}*,\n\n` +
+                              `This is a message regarding your reservation with *${settings.storeName || 'CHRONOS'}*.\n\n` +
+                              `*Order ID:* ${order.id}\n` +
+                              `*Status:* ${order.status.toUpperCase()}\n` +
+                              `*DHL Air Priority Tracking:* ${order.trackingNumber}\n` +
+                              `*Items Ordered:* ${order.items.map(item => `${item.quantity}x ${item.watch.brand} ${item.watch.name}`).join(', ')}\n` +
+                              `*Total Amount:* ₹${order.total.toLocaleString('en-IN')}\n\n` +
+                              `_We are preparing your shipment allocation. Let us know if you need any assist!_`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-[#25D366]/10 border border-[#25D366]/30 text-emerald-400 hover:bg-[#25D366] hover:text-black hover:border-emerald-500 text-[10.5px] font-mono font-bold tracking-widest px-2.5 py-1 rounded uppercase cursor-pointer transition-all flex items-center space-x-1"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
+                            <span>WhatsApp Customer</span>
+                          </a>
                           
                           <button
                             onClick={() => onRemoveOrder(order.id)}
@@ -1710,6 +1757,67 @@ export default function MasterDashboard({
                 </div>
               </div>
 
+            </div>
+
+            {/* WhatsApp Store Notifications & Ordering section */}
+            <div className="bg-[#121212] p-6 rounded-2xl border border-white/5 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/5 pb-3 pb-3">
+                <div>
+                  <h4 className="text-[11px] font-mono text-emerald-400 uppercase tracking-widest font-bold flex items-center gap-1.5 select-none">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>WhatsApp Ordering & Notifications Config (Boutique Update)</span>
+                  </h4>
+                  <p className="text-[10px] text-stone-400 mt-0.5 select-none">
+                    Manage direct order forwarding, mobile redirection, and pre-formatted WhatsApp chat receipts for your boutique.
+                  </p>
+                </div>
+                
+                {/* Auto redirect switch */}
+                <div className="flex items-center space-x-2 mt-2 sm:mt-0 bg-[#0a0a0a] px-3.5 py-1.5 rounded-xl border border-white/5 select-none font-mono text-[11px]">
+                  <span className="text-stone-400 font-sans text-[10px]">WhatsApp Sharing option:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSettingChange('whatsappAutoRedirectEnabled', draftSettings.whatsappAutoRedirectEnabled !== false ? false : true)}
+                    className="text-emerald-400 cursor-pointer focus:outline-none"
+                    title="Toggle WhatsApp Features"
+                  >
+                    {draftSettings.whatsappAutoRedirectEnabled !== false ? (
+                      <ToggleRight className="h-8 w-8 text-emerald-400" />
+                    ) : (
+                      <ToggleLeft className="h-8 w-8 text-stone-600" />
+                    )}
+                  </button>
+                  <span className={`text-[10px] font-bold ${draftSettings.whatsappAutoRedirectEnabled !== false ? 'text-emerald-400' : 'text-stone-500'}`}>
+                    {draftSettings.whatsappAutoRedirectEnabled !== false ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-left">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono text-stone-400 uppercase block tracking-wider font-bold">
+                    Boutique Owner WhatsApp Phone Number (with Country Code)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 919876543210 (India) or 41781234567 (Swiss) - digits only"
+                    value={draftSettings.whatsappOwnerNumber || ''}
+                    onChange={(e) => handleSettingChange('whatsappOwnerNumber', e.target.value.replace(/[^0-9]/g, ''))}
+                    className="w-full px-3 py-2 bg-[#0e0e0e] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                  />
+                  <p className="text-[9.5px] text-stone-500 leading-relaxed mt-1">
+                    * Enter the mobile country code and number without spaces, hyphens, or leading "+". If you provide a valid number, checkout confirmations will display an instant button allowing customers to send orders right to your chat.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-stone-900/30 rounded-xl border border-white/5 space-y-2 text-[11px]">
+                  <span className="text-stone-300 font-bold block text-[10.5px] uppercase text-amber-500 font-mono select-none">How it works:</span>
+                  <ul className="list-disc pl-4 space-y-1.5 text-stone-450 text-[10.5px]">
+                    <li><b>Customer receipt ping:</b> Right after a checkout confirmation is displayed, the client is shown an offline dispatch card containing a click action targeting your number.</li>
+                    <li><b>Direct Admin chat links:</b> Next to each log row on the "Insular Dispatch log", click <i>WhatsApp Customer</i> to send full tracking references and dispatch state reminders directly.</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             {/* Dynamic Packaging & Gift Wrapping customizer section */}

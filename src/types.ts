@@ -96,6 +96,8 @@ export interface BoutiqueSettings {
   giftBoxOptions?: GiftBoxOption[];
   freeShippingEnabled?: boolean;
   freeShippingThreshold?: number;
+  whatsappOwnerNumber?: string;
+  whatsappAutoRedirectEnabled?: boolean;
 }
 
 export interface CompactOrder {

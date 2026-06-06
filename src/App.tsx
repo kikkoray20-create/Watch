@@ -917,7 +917,8 @@ export default function App() {
     }
 
     setCart([]);
-    setIsCheckoutOpen(false);
+    // Keep modal open so customer can access WhatsApp redirect on Success Step
+    // setIsCheckoutOpen(false);
     triggerNotification(`Order ${newOrder.id} logged; tracking initialized!`);
   };
 
@@ -1422,6 +1423,7 @@ export default function App() {
         storeName={boutiqueSettings.storeName}
         categories={boutiqueSettings.categories || ['sports', 'classic', 'minimalist', 'prestige']}
         hideCategoryShelf={isAdminDashboardActive}
+        firebaseConnected={firebaseConnected}
       />
 
       {/* Floating alert notifications */}
@@ -1460,6 +1462,7 @@ export default function App() {
             onClearLendingProposals={handleClearLendingProposals}
             analytics={analytics}
             onClearAnalytics={handleClearAnalytics}
+            firebaseConnected={firebaseConnected}
           />
         ) : isLendingPageActive ? (
           <LendingPage
@@ -1682,6 +1685,9 @@ export default function App() {
         onLogin={handleLoginUser}
         freeShippingEnabled={boutiqueSettings.freeShippingEnabled !== false}
         freeShippingThreshold={boutiqueSettings.freeShippingThreshold !== undefined ? boutiqueSettings.freeShippingThreshold : 400000}
+        whatsappOwnerNumber={boutiqueSettings.whatsappOwnerNumber}
+        whatsappAutoRedirectEnabled={boutiqueSettings.whatsappAutoRedirectEnabled}
+        storeName={boutiqueSettings.storeName}
       />
 
       <LoginModal

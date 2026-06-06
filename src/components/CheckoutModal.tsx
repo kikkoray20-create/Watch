@@ -15,6 +15,9 @@ interface CheckoutModalProps {
   onLogin: (email: string, fullName: string, password?: string, isSignUp?: boolean) => Promise<void>;
   freeShippingEnabled?: boolean;
   freeShippingThreshold?: number;
+  whatsappOwnerNumber?: string;
+  whatsappAutoRedirectEnabled?: boolean;
+  storeName?: string;
 }
 
 export default function CheckoutModal({
@@ -30,8 +33,11 @@ export default function CheckoutModal({
   onLogin,
   freeShippingEnabled = true,
   freeShippingThreshold = 400000,
+  whatsappOwnerNumber,
+  whatsappAutoRedirectEnabled,
+  storeName = 'CHRONOS',
 }: CheckoutModalProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [contactOption, setContactOption] = useState<'phone' | 'email'>('phone');
   const [formData, setFormData] = useState({
@@ -194,7 +200,7 @@ export default function CheckoutModal({
     // Simulate luxury API gateway check in 1.5 seconds
     setTimeout(() => {
       setIsProcessing(false);
-      setStep(3);
+      setStep(5);
 
       // Trigger Webhook Event logs matching official Shopify standards
       const orderNumber = Math.floor(1000 + Math.random() * 9000);
@@ -708,6 +714,40 @@ export default function CheckoutModal({
               <p className="text-xs text-stone-300 max-w-sm mx-auto leading-relaxed font-sans">
                 Thank you for your purchase. We have committed your physical allocation in our Swiss vaults and initialized your premium timepiece reservation sequence.
               </p>
+
+              {/* WhatsApp direct receipt share widget */}
+              <div className="p-4 bg-emerald-950/10 border border-emerald-800/20 rounded-xl space-y-2.5 max-w-sm mx-auto text-center" id="whatsapp-receipt-share-box">
+                <p className="text-[10px] uppercase font-mono tracking-wider text-emerald-400 font-bold">
+                  🟢 RECEIVE BILL / DETAILS ON WHATSAPP
+                </p>
+                <p className="text-[10.5px] text-stone-400 font-sans leading-normal">
+                  Click below to instantly share your luxury timepiece allocation slip & invoice coordinates to WhatsApp.
+                </p>
+                
+                <a
+                  href={`https://wa.me/${(whatsappOwnerNumber || '919876543210').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                    `*📢 NEW WATCH ALLOCATION CONFIRMED - ${storeName || 'CHRONOS'}*\n` +
+                    `---------------------------------------\n` +
+                    `*Owner / Client:* ${formData.fullName || user?.fullName}\n` +
+                    `*Registered Mobile ID:* ${formData.email || user?.email}\n` +
+                    `*Delivery Address:* ${formData.address}, ${formData.city}\n\n` +
+                    `*Items Reserved:*\n` +
+                    `${cart.map(item => `- ${item.quantity}x ${item.watch.brand} ${item.watch.name} (₹${item.watch.price.toLocaleString('en-IN')})`).join('\n')}\n\n` +
+                    `*Total Collation Amount:* ₹${totalAmount.toLocaleString('en-IN')}\n` +
+                    `---------------------------------------\n` +
+                    `_Please finalize our secure reservation. Thank you!_`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-full items-center justify-center space-x-2 bg-[#25D366] hover:bg-emerald-500 text-black font-mono font-bold text-[11px] uppercase tracking-wider py-2.5 px-4 rounded-xl transition-all shadow-[0_4px_15px_rgba(37,211,102,0.15)] hover:scale-[1.01]"
+                >
+                  <Send className="h-4 w-4 shrink-0" />
+                  <span>Send Order to WhatsApp</span>
+                </a>
+                <p className="text-[9px] text-stone-500 font-mono">
+                  * Opens a secure WhatsApp chat prefilled with your bill details.
+                </p>
+              </div>
 
               {/* Delivery info segment */}
               <div className="bg-white/5 border border-white/5 p-4 rounded-xl text-xs max-w-sm mx-auto font-mono text-stone-400 select-none">
