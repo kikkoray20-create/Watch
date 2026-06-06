@@ -156,6 +156,10 @@ export default function App() {
     configDiagnostics.isUsingFallback ? "Incomplete configuration in environment settings" : null
   );
   const [showConfigHelper, setShowConfigHelper] = useState(false);
+  const [isOfflineBypassed, setIsOfflineBypassed] = useState<boolean>(() => {
+    return localStorage.getItem('chronos_offline_bypass') === 'true';
+  });
+  const [showAdvancedError, setShowAdvancedError] = useState(false);
 
   // Admin view toggle helper state
   const [isAdminDashboardActive, setIsAdminDashboardActive] = useState(false);
@@ -439,27 +443,55 @@ export default function App() {
       }
     };
 
-    // 2. Fetch Catalog (Watches)
+    // 2. Fetch Catalog (Watches) with self-healing offline auto-sync
     const loadCatalog = async () => {
       try {
         const colRef = collection(db, 'watches');
         const querySnap = await getDocs(colRef);
+        
+        // Load whatever catalog we currently have saved in localStorage to assist with merging
+        const savedLocalStr = localStorage.getItem('chronos_catalog');
+        const localCatalog: WatchModel[] = savedLocalStr ? JSON.parse(savedLocalStr) : products;
+        
         if (querySnap.empty) {
-          // Seed catalog watches to Firestore database
+          // If Firestore is empty, seed it using our currently stored local catalog (preserving any new custom watch models we added!)
           try {
-            for (const w of products) {
+            for (const w of localCatalog) {
               await setDoc(doc(db, 'watches', w.id), w);
             }
           } catch (writeErr) {
-            console.warn("Seeding default catalog skipped (Admin auth required). Operating with local fallback and state.");
+            console.warn("Seeding default catalog to Firestore skipped (not authenticated/disallowed).", writeErr);
           }
-          setCatalog(products);
+          setCatalog(localCatalog);
         } else {
           const loadedWatches: WatchModel[] = [];
           querySnap.forEach((doc) => {
             loadedWatches.push(doc.data() as WatchModel);
           });
-          setCatalog(loadedWatches);
+          
+          // Identify if we have any newly added or modified watches in local storage that exist here but are NOT on the server yet!
+          // We can sync them up to Firestore to resolve any offline/interrupted save issues.
+          const unsyncedWatches = localCatalog.filter(
+            (localW) => !loadedWatches.some((srvW) => srvW.id === localW.id)
+          );
+          
+          if (unsyncedWatches.length > 0) {
+            console.info(`Found ${unsyncedWatches.length} unsynced local watches. Syncing to Firestore now...`);
+            const merged = [...loadedWatches];
+            for (const w of unsyncedWatches) {
+              try {
+                await setDoc(doc(db, 'watches', w.id), w);
+                merged.push(w);
+              } catch (writeErr) {
+                console.warn(`Could not sync watch ${w.id} to Firestore collection.`, writeErr);
+              }
+            }
+            setCatalog(merged);
+            safeLocalStorageSetItem('chronos_catalog', JSON.stringify(merged));
+          } else {
+            setCatalog(loadedWatches);
+            safeLocalStorageSetItem('chronos_catalog', JSON.stringify(loadedWatches));
+          }
         }
       } catch (err) {
         setFirebaseConnected(false);
@@ -1370,7 +1402,7 @@ export default function App() {
     return matchesCategory && matchesQuery;
   });
 
-  if (firebaseConnected === false) {
+  if (firebaseConnected === false && !isOfflineBypassed) {
     // Console log standard unhandled network crash for complete diagnostic realism
     console.error("GET https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel net::ERR_CONNECTION_REFUSED");
     
@@ -1419,13 +1451,40 @@ export default function App() {
             </div>
           </div>
 
+          {showAdvancedError && (
+            <div className="bg-[#f0f4f9] p-4 rounded-[4px] border border-[#e0e4e9] text-xs text-[#5f6368] leading-relaxed space-y-3" id="chrome-advanced-unfolded">
+              <p>
+                <strong>Developer Diagnostics:</strong> If you are testing or designing this application in the Google AI Studio builder environment without configured active database keys, you can bypass the database connection checkpoint.
+              </p>
+              <div className="pt-1">
+                <button
+                  onClick={() => {
+                    setIsOfflineBypassed(true);
+                    localStorage.setItem('chronos_offline_bypass', 'true');
+                  }}
+                  className="text-[#1a73e8] hover:underline font-semibold cursor-pointer text-xs"
+                >
+                  Proceed to CHRONOS (Offline Backup Sandbox Mode)
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="pt-4 flex items-center justify-between">
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-[#1a73e8] hover:bg-[#1557b0] text-white font-medium text-xs px-[24px] py-[10px] rounded-[4px] hover:shadow-xs transition-colors cursor-pointer"
-            >
-              Reload
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => window.location.reload()}
+                className="bg-[#1a73e8] hover:bg-[#1557b0] text-white font-medium text-xs px-[24px] py-[10px] rounded-[4px] hover:shadow-xs transition-colors cursor-pointer"
+              >
+                Reload
+              </button>
+              <button 
+                onClick={() => setShowAdvancedError(!showAdvancedError)}
+                className="bg-[#f1f3f4] hover:bg-[#e8eaed] text-[#5f6368] font-medium text-xs px-[16px] py-[10px] rounded-[4px] transition-colors cursor-pointer"
+              >
+                {showAdvancedError ? "Hide Advanced" : "Advanced"}
+              </button>
+            </div>
             <button 
               onClick={() => window.location.replace('about:blank')}
               className="text-[#1a73e8] hover:bg-[#f4f8ff] font-medium text-xs px-3 py-2 rounded-[4px] transition-colors cursor-pointer"

@@ -68,33 +68,39 @@ export default function Header({
                 </div>
 
                 {/* Firestore Database Live Indicator */}
-                <div className="hidden sm:flex items-center self-center pl-2 select-none border-l border-white/10 shrink-0">
-                  {firebaseConnected === true ? (
-                    <div 
-                      className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider font-semibold"
-                      title="Firestore Database Connected: Live Data Sync Active"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                      <span>FIREBASE LIVE</span>
-                    </div>
-                  ) : firebaseConnected === false ? (
-                    <div 
-                      className="px-2.5 py-1 bg-neutral-900 border border-white/10 text-stone-400 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider"
-                      title="Local Storage Fallback Active: DB Offline"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-stone-500"></span>
-                      <span>LOCAL DB FALLBACK</span>
-                    </div>
-                  ) : (
-                    <div 
-                      className="px-2.5 py-1 bg-[#121212] border border-white/5 text-stone-500 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider"
-                      title="Checking status..."
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500/40 animate-pulse"></span>
-                      <span>DB RESOLVING</span>
-                    </div>
-                  )}
-                </div>
+                {user?.isAdmin && (
+                  <div className="hidden sm:flex items-center self-center pl-2 select-none border-l border-white/10 shrink-0">
+                    {firebaseConnected === true ? (
+                      <div 
+                        className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider font-semibold"
+                        title="Firestore Database Connected: Live Data Sync Active"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                        <span>FIREBASE LIVE</span>
+                      </div>
+                    ) : firebaseConnected === false ? (
+                      <div 
+                        className="px-2.5 py-1 bg-neutral-900 hover:bg-neutral-800 border border-white/10 text-stone-400 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider cursor-pointer transition-colors"
+                        title="Local Storage Fallback Active: Click to try reconnecting to Firebase..."
+                        onClick={() => {
+                          localStorage.removeItem('chronos_offline_bypass');
+                          window.location.reload();
+                        }}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-stone-500"></span>
+                        <span>LOCAL DB FALLBACK</span>
+                      </div>
+                    ) : (
+                      <div 
+                        className="px-2.5 py-1 bg-[#121212] border border-white/5 text-stone-500 rounded-full flex items-center space-x-1.5 text-[9px] font-mono tracking-wider"
+                        title="Checking status..."
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500/40 animate-pulse"></span>
+                        <span>DB RESOLVING</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Search Input - Desktop & Tablet */}
