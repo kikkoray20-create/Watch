@@ -28,7 +28,23 @@ const safeLocalStorageSetItem = (key: string, value: string) => {
 export default function App() {
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('chronos_cart');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed: CartItem[] = JSON.parse(saved);
+        const mockWatchIds = [
+          'ocean-chronograph',
+          'gold-tourbillon',
+          'minimalist-titanium',
+          'luna-phase-classic',
+          'alpine-chronograph',
+          'vanguard-monochrome'
+        ];
+        return parsed.filter(item => item?.watch && !mockWatchIds.includes(item.watch.id));
+      } catch (err) {
+        return [];
+      }
+    }
+    return [];
   });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedWatch, setSelectedWatch] = useState<WatchModel | null>(null);
@@ -82,7 +98,23 @@ export default function App() {
   // Dynamic Catalog of Watches
   const [catalog, setCatalog] = useState<WatchModel[]>(() => {
     const saved = localStorage.getItem('chronos_catalog');
-    return saved ? JSON.parse(saved) : products;
+    if (saved) {
+      try {
+        const parsed: WatchModel[] = JSON.parse(saved);
+        const mockWatchIds = [
+          'ocean-chronograph',
+          'gold-tourbillon',
+          'minimalist-titanium',
+          'luna-phase-classic',
+          'alpine-chronograph',
+          'vanguard-monochrome'
+        ];
+        return parsed.filter(w => w && !mockWatchIds.includes(w.id));
+      } catch (err) {
+        return [];
+      }
+    }
+    return [];
   });
 
   // Parse deep links or special routes from URL query params
@@ -445,13 +477,26 @@ export default function App() {
 
     // 2. Fetch Catalog (Watches) with self-healing offline auto-sync
     const loadCatalog = async () => {
+      const mockWatchIds = [
+        'ocean-chronograph',
+        'gold-tourbillon',
+        'minimalist-titanium',
+        'luna-phase-classic',
+        'alpine-chronograph',
+        'vanguard-monochrome'
+      ];
       try {
         const colRef = collection(db, 'watches');
         const querySnap = await getDocs(colRef);
         
         // Load whatever catalog we currently have saved in localStorage to assist with merging
         const savedLocalStr = localStorage.getItem('chronos_catalog');
-        const localCatalog: WatchModel[] = savedLocalStr ? JSON.parse(savedLocalStr) : products;
+        let localCatalog: WatchModel[] = [];
+        if (savedLocalStr) {
+          try {
+            localCatalog = JSON.parse(savedLocalStr).filter((w: any) => w && !mockWatchIds.includes(w.id));
+          } catch (e) {}
+        }
         
         if (querySnap.empty) {
           // If Firestore is empty, seed it using our currently stored local catalog (preserving any new custom watch models we added!)
@@ -466,7 +511,10 @@ export default function App() {
         } else {
           const loadedWatches: WatchModel[] = [];
           querySnap.forEach((doc) => {
-            loadedWatches.push(doc.data() as WatchModel);
+            const data = doc.data() as WatchModel;
+            if (data && !mockWatchIds.includes(data.id)) {
+              loadedWatches.push(data);
+            }
           });
           
           // Identify if we have any newly added or modified watches in local storage that exist here but are NOT on the server yet!
@@ -498,7 +546,12 @@ export default function App() {
         setFirebaseErrorText(err instanceof Error ? err.message : String(err));
         
         const savedLocal = localStorage.getItem('chronos_catalog');
-        const fallbackCatalog = savedLocal ? JSON.parse(savedLocal) : products;
+        let fallbackCatalog: WatchModel[] = [];
+        if (savedLocal) {
+          try {
+            fallbackCatalog = JSON.parse(savedLocal).filter((w: any) => w && !mockWatchIds.includes(w.id));
+          } catch (e) {}
+        }
         
         try {
           handleFirestoreError(err, OperationType.GET, 'watches');
@@ -1651,17 +1704,26 @@ export default function App() {
                   </div>
  
                   <div className="lg:col-span-5 relative flex justify-center">
-                    <div className="relative h-[280px] sm:h-[340px] w-[280px] sm:w-[340px] bg-[#0e0e0e] rounded-full shadow-[0_20px_50px_rgba(245,158,11,0.05)] border border-white/5 flex items-center justify-center p-6 group cursor-pointer" onClick={() => handleSelectWatchPage(products[1])}>
-                      <img
-                        src={products[1].imageUrl}
-                        alt="Featured Golden Tourbillon"
-                        referrerPolicy="no-referrer"
-                        className="h-full w-auto object-contain p-2 group-hover:rotate-6 transition-all duration-700 ease-out"
-                      />
-                      <span className="absolute bottom-4 right-4 bg-black/80 border border-white/10 text-white text-[9px] font-mono font-bold tracking-widest uppercase py-1.5 px-3 rounded-full hover:bg-amber-500 hover:text-black transition-colors">
-                        Inspect prestige specs →
-                      </span>
-                    </div>
+                    {catalog.length > 0 ? (
+                      <div className="relative h-[280px] sm:h-[340px] w-[280px] sm:w-[340px] bg-[#0e0e0e] rounded-full shadow-[0_20px_50px_rgba(245,158,11,0.05)] border border-white/5 flex items-center justify-center p-6 group cursor-pointer" onClick={() => handleSelectWatchPage(catalog[0])}>
+                        <img
+                          src={catalog[0].imageUrl}
+                          alt={catalog[0].name}
+                          referrerPolicy="no-referrer"
+                          className="h-full w-auto object-contain p-2 group-hover:rotate-6 transition-all duration-700 ease-out"
+                        />
+                        <span className="absolute bottom-4 right-4 bg-black/80 border border-white/10 text-white text-[9px] font-mono font-bold tracking-widest uppercase py-1.5 px-3 rounded-full hover:bg-amber-500 hover:text-black transition-colors">
+                          Inspect prestige specs →
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="relative h-[280px] sm:h-[340px] w-[280px] sm:w-[340px] bg-[#0e0e0e] rounded-full shadow-[0_20px_50px_rgba(245,158,11,0.05)] border border-white/5 flex flex-col items-center justify-center p-8 text-center select-none">
+                        <div className="text-amber-500 text-3xl font-serif tracking-[0.2em] mb-3 font-bold">CHRONOS</div>
+                        <p className="text-stone-500 text-[10px] font-mono leading-relaxed uppercase">
+                          The shelf is currently vacant.<br />Admin may log in to add custom luxury models.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                 </div>
