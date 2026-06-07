@@ -311,14 +311,7 @@ export default function CheckoutModal({
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center pt-2">
-                    <button
-                      type="button"
-                      onClick={handleAutoFill}
-                      className="text-[10px] font-mono text-amber-500 hover:underline cursor-pointer"
-                    >
-                      ⚡ Preset Premium Client Demo Details
-                    </button>
+                  <div className="flex justify-end items-center pt-2">
                     <button
                       type="submit"
                       className="bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-[10px] font-mono tracking-wider uppercase transition-colors flex items-center justify-center space-x-1.5 cursor-pointer"
