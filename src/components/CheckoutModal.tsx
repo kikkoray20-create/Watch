@@ -57,15 +57,6 @@ export default function CheckoutModal({
     cvv: '',
   });
 
-  // Inline auth states for checkout gateway
-  const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authFullName, setAuthFullName] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [showAuthPassword, setShowAuthPassword] = useState(false);
-
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
@@ -96,49 +87,6 @@ export default function CheckoutModal({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleInlineAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError('');
-    setAuthLoading(true);
-    try {
-      if (authTab === 'signup' && !authFullName.trim()) {
-        throw new Error('Please enter your full name to enroll.');
-      }
-
-      const cleaned = authEmail.trim();
-      if (!cleaned) {
-        throw new Error('Please enter your mobile number.');
-      }
-
-      // Main customers must use mobile numbers. Bypass only for the master admin.
-      const isAdminUser = cleaned === 'admin' || cleaned === 'admin@chronos.com';
-      if (!isAdminUser) {
-        if (cleaned.includes('@')) {
-          throw new Error('Email logins are not allowed. Please login or sign up using your mobile number.');
-        }
-        // Mobile number structure verification
-        const phoneRegex = /^[+]?[0-9\s\-()]{4,20}$/;
-        if (!phoneRegex.test(cleaned)) {
-          throw new Error('Invalid mobile number. Please enter a valid mobile number.');
-        }
-      }
-
-      await onLogin(
-        cleaned,
-        authTab === 'signup' ? authFullName : '',
-        authPassword,
-        authTab === 'signup'
-      );
-      setAuthPassword('');
-      setAuthEmail('');
-      setAuthFullName('');
-    } catch (err: any) {
-      setAuthError(err.message || 'Authentication failed. Please verify credentials.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   // Safe credentials helper
   const handleAutoFill = () => {
     setFormData((prev) => ({
@@ -155,25 +103,17 @@ export default function CheckoutModal({
       expiry: '12/29',
       cvv: '399',
     }));
-
-    if (!user) {
-      onLogin('9876543215', 'Alexandre Horologue', '•••••••••', false).catch(() => {});
-    }
   };
 
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
     if (step === 1) {
-      if (!user) {
-        alert('Please login or sign up to complete your checkout.');
+      if (!formData.fullName.trim()) {
+        alert('Please enter your full name to proceed.');
         return;
       }
-      if (!formData.fullName) {
-        alert('No registered member name is matched. Please authenticate first.');
-        return;
-      }
-      if (!formData.email) {
-        alert('No registered mobile number coordinates are matched. Please authenticate first.');
+      if (!formData.email.trim()) {
+        alert('Please enter your primary contact email or mobile number.');
         return;
       }
       setStep(2);
@@ -305,7 +245,7 @@ export default function CheckoutModal({
 
         {/* Status tracker timeline nodes */}
         <div className="px-6 py-3 border-b border-white/5 flex items-center space-x-2 text-[10px] md:text-xs font-mono text-stone-400 select-none bg-[#121212] overflow-x-auto whitespace-nowrap">
-          <span className={step === 1 ? 'text-amber-500 font-bold' : step > 1 ? 'text-emerald-500 font-bold' : 'text-stone-500'}>1. Login/Sign-up</span>
+          <span className={step === 1 ? 'text-amber-500 font-bold' : step > 1 ? 'text-emerald-500 font-bold' : 'text-stone-500'}>1. Client Identity</span>
           <ChevronRight className="h-3 w-3 text-stone-600 shrink-0" />
           <span className={step === 2 ? 'text-amber-500 font-bold' : step > 2 ? 'text-emerald-500 font-bold' : 'text-stone-500'}>2. Select Info</span>
           <ChevronRight className="h-3 w-3 text-stone-600 shrink-0" />
@@ -318,131 +258,76 @@ export default function CheckoutModal({
         <div className="p-6">
           
           {step === 1 && (
-            <div className="space-y-5 text-left">
-              {/* Secure Login / Sign-up Selection block */}
-              {user ? (
-                <div className="space-y-6">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-xl flex flex-col items-center text-center space-y-3">
-                    <div className="h-10 w-10 rounded-full bg-emerald-500/25 flex items-center justify-center border border-emerald-500/30">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+            <div className="space-y-5 text-left animate-fade-in">
+              <div className="bg-white/5 border border-white/5 p-6 rounded-xl space-y-4">
+                <div>
+                  <h4 className="text-xs font-serif font-bold text-stone-200">Customer Identification</h4>
+                  <p className="text-[9px] font-mono text-stone-400">Please provide your contact coordinates to initialize the bespoke order allocation.</p>
+                </div>
+
+                <form onSubmit={handleNextStep} className="space-y-4">
+                  <div>
+                    <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">
+                      Full Name <span className="text-amber-500 font-bold">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="fullName"
+                      required
+                      placeholder="Alexandre Horologue"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">
+                        Contact Mobile or Email <span className="text-amber-500 font-bold">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="email"
+                        required
+                        placeholder="e.g. 9876543210 or email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
+                      />
                     </div>
                     <div>
-                      <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-semibold mb-1">Authenticated Boutique Profile</p>
-                      <h4 className="text-base font-serif font-bold text-white leading-tight">{user.fullName}</h4>
-                      <p className="text-[11px] font-mono text-stone-400 mt-1">{user.email} • {user.memberTier}</p>
-                    </div>
-                    <div className="text-xs font-mono bg-stone-900 border border-white/5 py-1.5 px-3.5 rounded-lg text-amber-400">
-                      Boutique Loyalty balance: <span className="font-bold">{user.loyaltyPoints} PTS</span>
+                      <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">
+                        Secondary Phone (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        placeholder="e.g. +41 78 123 4567"
+                        value={formData.phone || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
+                      />
                     </div>
                   </div>
 
-                  <div className="pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="flex justify-between items-center pt-2">
                     <button
                       type="button"
-                      onClick={() => setStep(2)}
-                      className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-black font-semibold px-8 py-3 rounded-lg text-xs font-mono tracking-wider uppercase transition-all hover:scale-[1.02] cursor-pointer"
+                      onClick={handleAutoFill}
+                      className="text-[10px] font-mono text-amber-500 hover:underline cursor-pointer"
                     >
-                      Proceed to Select Info
+                      ⚡ Preset Premium Client Demo Details
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-[10px] font-mono tracking-wider uppercase transition-colors flex items-center justify-center space-x-1.5 cursor-pointer"
+                    >
+                      <span>Proceed to Select Info</span>
                     </button>
                   </div>
-                </div>
-              ) : (
-                <div className="bg-white/5 border border-white/5 p-6 rounded-xl space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
-                    <div>
-                      <h4 className="text-xs font-serif font-bold text-stone-200">Boutique Secure Entrance</h4>
-                      <p className="text-[9px] font-mono text-stone-400">Log in or register to establish member pricing and purchase allocations.</p>
-                    </div>
-                    <div className="flex space-x-1.5 bg-black p-0.5 rounded border border-white/5 shrink-0 select-none">
-                      <button
-                        type="button"
-                        onClick={() => setAuthTab('login')}
-                        className={`text-[9.5px] font-mono px-3 py-1 rounded transition-colors ${authTab === 'login' ? 'bg-amber-500 text-black font-semibold' : 'text-stone-400 hover:text-white'}`}
-                      >
-                        Log In
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAuthTab('signup')}
-                        className={`text-[9.5px] font-mono px-3 py-1 rounded transition-colors ${authTab === 'signup' ? 'bg-amber-500 text-black font-semibold' : 'text-stone-400 hover:text-white'}`}
-                      >
-                        Sign Up
-                      </button>
-                    </div>
-                  </div>
-
-                  {authError && (
-                    <p className="text-[10px] font-mono text-rose-400 bg-rose-950/15 border border-rose-900/30 p-2 rounded">
-                      ⚠️ {authError}
-                    </p>
-                  )}
-
-                  {/* Inline Auth Fields */}
-                  <form onSubmit={handleInlineAuth} className="space-y-4">
-                    {authTab === 'signup' && (
-                      <div>
-                        <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">Full Name</label>
-                        <input
-                          type="text"
-                          placeholder="Alexandre Horologue"
-                          value={authFullName}
-                          onChange={(e) => setAuthFullName(e.target.value)}
-                          className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
-                        />
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] font-mono uppercase tracking-wider text-amber-500 block mb-1 font-bold">Mobile Number (No Email)</label>
-                        <input
-                          type="tel"
-                          placeholder="e.g. 9876543210 (or admin)"
-                          value={authEmail}
-                          onChange={(e) => setAuthEmail(e.target.value)}
-                          className="w-full px-3 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block mb-1">Password</label>
-                        <div className="relative">
-                          <input
-                            type={showAuthPassword ? 'text' : 'password'}
-                            placeholder="••••••••••••••"
-                            value={authPassword}
-                            onChange={(e) => setAuthPassword(e.target.value)}
-                            className="w-full pl-3 pr-10 py-2 bg-black border border-white/10 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none focus:border-amber-500 text-white font-sans"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowAuthPassword(!showAuthPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white transition-colors cursor-pointer select-none focus:outline-none"
-                            title={showAuthPassword ? 'Hide Password' : 'Show Password'}
-                          >
-                            {showAuthPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-2">                
-                      <button
-                        type="submit"
-                        disabled={authLoading}
-                        className="bg-white text-black hover:bg-amber-500 font-bold px-6 py-2.5 rounded-lg text-[10px] font-mono tracking-wider uppercase transition-colors flex items-center justify-center space-x-1.5 cursor-pointer"
-                      >
-                        {authLoading ? (
-                          <>
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            <span>Verifying...</span>
-                          </>
-                        ) : (
-                          <span>{authTab === 'login' ? 'Authenticate Profile' : 'Enroll Boutique Account'}</span>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
+                </form>
+              </div>
             </div>
           )}
 
