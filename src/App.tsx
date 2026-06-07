@@ -75,6 +75,7 @@ export default function App() {
         giftBoxOptions: defaultOpts,
         freeShippingEnabled: true,
         freeShippingThreshold: 400000,
+        secureAirLogisticsCost: 12500,
         ...parsed
       };
     }
@@ -92,6 +93,7 @@ export default function App() {
       giftBoxOptions: defaultOpts,
       freeShippingEnabled: true,
       freeShippingThreshold: 400000,
+      secureAirLogisticsCost: 12500,
     };
   });
 
@@ -916,7 +918,8 @@ export default function App() {
     
     const isFreeShippingAvailable = boutiqueSettings.freeShippingEnabled !== false;
     const threshold = boutiqueSettings.freeShippingThreshold !== undefined ? boutiqueSettings.freeShippingThreshold : 400000;
-    const shippingCost = (isFreeShippingAvailable && subtotal > threshold) || subtotal === 0 ? 0 : 12500;
+    const defaultShipping = boutiqueSettings.secureAirLogisticsCost !== undefined ? boutiqueSettings.secureAirLogisticsCost : 12500;
+    const shippingCost = (isFreeShippingAvailable && subtotal > threshold) || subtotal === 0 ? 0 : defaultShipping;
     const totalAmount = subtotal - discountAmount + giftWrappingCost + shippingCost;
 
     const orderNumber = Math.floor(1000 + Math.random() * 9000);
@@ -1856,6 +1859,7 @@ export default function App() {
         onSelectGiftBox={setSelectedGiftBoxId}
         freeShippingEnabled={boutiqueSettings.freeShippingEnabled !== false}
         freeShippingThreshold={boutiqueSettings.freeShippingThreshold !== undefined ? boutiqueSettings.freeShippingThreshold : 400000}
+        secureAirLogisticsCost={boutiqueSettings.secureAirLogisticsCost !== undefined ? boutiqueSettings.secureAirLogisticsCost : 12500}
       />
 
       {/* Checkout Payment Wizard */}
@@ -1877,6 +1881,7 @@ export default function App() {
         whatsappOwnerNumber={boutiqueSettings.whatsappOwnerNumber}
         whatsappAutoRedirectEnabled={boutiqueSettings.whatsappAutoRedirectEnabled}
         storeName={boutiqueSettings.storeName}
+        secureAirLogisticsCost={boutiqueSettings.secureAirLogisticsCost !== undefined ? boutiqueSettings.secureAirLogisticsCost : 12500}
       />
 
       <LoginModal

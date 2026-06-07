@@ -29,7 +29,8 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
   // Free shipping rules
   const isFreeShippingAvailable = settings.freeShippingEnabled !== false;
   const threshold = settings.freeShippingThreshold !== undefined ? settings.freeShippingThreshold : 400000;
-  const shippingCost = (isFreeShippingAvailable && subtotal > threshold) || subtotal === 0 ? 0 : 12500;
+  const defaultShipping = settings.secureAirLogisticsCost !== undefined ? settings.secureAirLogisticsCost : 12500;
+  const shippingCost = (isFreeShippingAvailable && subtotal > threshold) || subtotal === 0 ? 0 : defaultShipping;
   
   // Derive discount amount to match total exactly
   const calculatedTotal = subtotal + giftWrappingCost + shippingCost;

@@ -17,6 +17,7 @@ interface CartDrawerProps {
   onSelectGiftBox?: (id: string) => void;
   freeShippingEnabled?: boolean;
   freeShippingThreshold?: number;
+  secureAirLogisticsCost?: number;
 }
 
 export default function CartDrawer({
@@ -34,6 +35,7 @@ export default function CartDrawer({
   onSelectGiftBox,
   freeShippingEnabled = true,
   freeShippingThreshold = 400000,
+  secureAirLogisticsCost = 12500,
 }: CartDrawerProps) {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; percent: number } | null>(null);
@@ -57,7 +59,7 @@ export default function CartDrawer({
   const giftWrappingCost = giftWrapping && selectedBox ? selectedBox.price : 0;
   
   // Shipping
-  const shippingCost = (isFreeShippingAvailable && subtotal > FREE_SHIPPING_THRESHOLD) || subtotal === 0 ? 0.00 : 12500.00;
+  const shippingCost = (isFreeShippingAvailable && subtotal > FREE_SHIPPING_THRESHOLD) || subtotal === 0 ? 0.00 : secureAirLogisticsCost;
   
   const estimatedTotal = subtotal - discountAmount + giftWrappingCost + shippingCost;
 

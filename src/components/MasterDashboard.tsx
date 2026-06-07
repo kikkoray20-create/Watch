@@ -1718,6 +1718,20 @@ export default function MasterDashboard({
                   </div>
                 )}
 
+                <div className="space-y-1 pt-2 border-t border-white/5">
+                  <label className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">Secure Air Logistics Base Fee (₹)</label>
+                  <input
+                    type="number"
+                    value={draftSettings.secureAirLogisticsCost !== undefined ? draftSettings.secureAirLogisticsCost : 12500}
+                    onChange={(e) => handleSettingChange('secureAirLogisticsCost', Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                    placeholder="e.g. 12500"
+                  />
+                  <p className="text-[9.5px] text-stone-500 leading-relaxed mt-1">
+                    * The default premium shipping fee applied when orders do not cross the free shipping milestone.
+                  </p>
+                </div>
+
               </div>
 
               {/* Hero Banner text configurations */}

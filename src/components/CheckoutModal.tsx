@@ -18,6 +18,7 @@ interface CheckoutModalProps {
   whatsappOwnerNumber?: string;
   whatsappAutoRedirectEnabled?: boolean;
   storeName?: string;
+  secureAirLogisticsCost?: number;
 }
 
 export default function CheckoutModal({
@@ -36,6 +37,7 @@ export default function CheckoutModal({
   whatsappOwnerNumber,
   whatsappAutoRedirectEnabled,
   storeName = 'CHRONOS',
+  secureAirLogisticsCost = 12500,
 }: CheckoutModalProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -85,7 +87,7 @@ export default function CheckoutModal({
   
   const isFreeShippingAvailable = freeShippingEnabled !== false;
   const threshold = freeShippingThreshold !== undefined ? freeShippingThreshold : 400000;
-  const shippingCost = (isFreeShippingAvailable && subtotal > threshold) || subtotal === 0 ? 0.00 : 12500.00;
+  const shippingCost = (isFreeShippingAvailable && subtotal > threshold) || subtotal === 0 ? 0.00 : secureAirLogisticsCost;
   const totalAmount = subtotal - discountAmount + giftWrappingCost + shippingCost;
 
   // Simple handlers

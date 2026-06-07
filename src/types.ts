@@ -98,6 +98,7 @@ export interface BoutiqueSettings {
   freeShippingThreshold?: number;
   whatsappOwnerNumber?: string;
   whatsappAutoRedirectEnabled?: boolean;
+  secureAirLogisticsCost?: number;
 }
 
 export interface CompactOrder {
