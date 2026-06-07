@@ -172,7 +172,7 @@ export default function CartDrawer({
                       <h4 className="font-serif text-sm font-medium text-white truncate leading-tight">
                         {item.watch.name}
                       </h4>
-                      <p className="text-xs text-stone-400 font-mono mt-1">
+                      <p className="text-xs text-stone-400 font-didot mt-1">
                         ₹{item.watch.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })} each
                       </p>
                       
@@ -305,12 +305,12 @@ export default function CartDrawer({
               <div className="space-y-2 text-xs font-sans text-stone-300">
                 <div className="flex justify-between">
                   <span>Cart Subtotal</span>
-                  <span className="font-mono text-white">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  <span className="font-didot text-white">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
                 {appliedPromo && (
                   <div className="flex justify-between text-emerald-400 font-medium">
                     <span>Active Discount ({appliedPromo.percent}%)</span>
-                    <span className="font-mono">-₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="font-didot">-₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
                 {giftWrapping && (
@@ -319,19 +319,19 @@ export default function CartDrawer({
                       <span>🎁 wrap:</span>
                       <span className="text-amber-400 italic text-[10px] max-w-[150px] truncate">({selectedBox?.name || 'Default Wrapping'})</span>
                     </span>
-                    <span className="font-mono text-white">₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="font-didot text-white">₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span>Secure Air Logistics</span>
-                  <span className="font-mono text-white">
+                  <span className="font-didot text-white">
                     {shippingCost === 0 ? 'Complimentary' : `₹${shippingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                   </span>
                 </div>
 
                 <div className="border-t border-white/5 pt-3 flex justify-between items-baseline">
                   <span className="font-serif text-sm font-medium text-white">Estimated Invoice Balance</span>
-                  <span className="font-serif text-lg font-semibold text-white">
+                  <span className="font-didot text-lg font-semibold text-white">
                     ₹{estimatedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>

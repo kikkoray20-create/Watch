@@ -289,13 +289,13 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
                               </div>
                             </div>
                           </td>
-                          <td className="py-3.5 text-right font-mono text-stone-700 print-text-dark">
+                          <td className="py-3.5 text-right font-didot text-stone-700 print-text-dark">
                             ₹{item.watch.price.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                           </td>
                           <td className="py-3.5 text-center font-mono text-stone-700 print-text-dark">
                             {item.quantity}
                           </td>
-                          <td className="py-3.5 text-right font-mono text-black font-semibold print-text-dark">
+                          <td className="py-3.5 text-right font-didot text-black font-semibold print-text-dark">
                             ₹{(item.watch.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                           </td>
                         </tr>
@@ -323,28 +323,28 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
                 <div className="space-y-2.5 font-mono text-stone-900 print-text-dark text-right">
                   <div className="flex justify-between text-xs">
                     <span className="text-stone-600 print-text-gray uppercase text-[9px] tracking-wider">Cart Subtotal:</span>
-                    <span className="text-stone-900 print-text-dark">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</span>
+                    <span className="text-stone-900 print-text-dark font-didot">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</span>
                   </div>
 
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-xs text-rose-700">
                       <span className="text-stone-600 print-text-gray uppercase text-[9px] tracking-wider">Discount ({order.shippingDetails.discountCode || 'PROMO'}):</span>
-                      <span className="font-bold">-₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</span>
+                      <span className="font-bold font-didot">-₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</span>
                     </div>
                   )}
 
                   {order.shippingDetails.giftWrapping && (
                     <div className="flex justify-between text-xs">
                       <span className="text-stone-600 print-text-gray uppercase text-[9px] tracking-wider">Premium Wooden Gift Box:</span>
-                      <span className="text-stone-900 print-text-dark">₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</span>
+                      <span className="text-stone-900 print-text-dark font-didot">₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between text-xs">
                     <span className="text-stone-600 print-text-gray uppercase text-[9px] tracking-wider">Insured Air Carriage:</span>
-                    <span className="text-stone-900 print-text-dark">
+                    <span className="text-stone-900 print-text-dark font-didot">
                       {shippingCost === 0 ? (
-                        <span className="text-emerald-700 font-bold uppercase text-[10px]">Complimentary</span>
+                        <span className="text-emerald-700 font-sans font-bold uppercase text-[10px]">Complimentary</span>
                       ) : (
                         `₹${shippingCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}`
                       )}
@@ -353,7 +353,7 @@ export default function InvoiceModal({ order, onClose, settings }: InvoiceModalP
 
                   <div className="pt-3 border-t border-stone-200 print-border flex justify-between items-center text-sm font-bold text-stone-900 print-text-dark">
                     <span className="font-serif text-stone-600 print-text-gray text-xs font-semibold tracking-wider uppercase">INVOICE BALANCE:</span>
-                    <span className="text-amber-700 text-base font-bold print-text-dark">
+                    <span className="text-amber-700 text-base font-bold print-text-dark font-didot">
                       ₹{order.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>

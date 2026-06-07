@@ -129,7 +129,7 @@ export default function WatchModal({ watch, onClose, onAddToCart }: WatchModalPr
 
                 {/* Pricing Boxed Accent */}
                 <div className="flex items-baseline space-x-2 mb-6">
-                  <span className="text-2xl font-serif font-light text-white">
+                  <span className="text-2xl font-didot font-light text-white">
                     ₹{watch.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                   <span className="text-xs text-stone-500 font-mono">INR / GST Included</span>

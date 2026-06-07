@@ -495,7 +495,7 @@ export default function CheckoutModal({
                             <p className="text-[9px] font-mono text-stone-400">{item.watch.brand} • Qty: {item.quantity}</p>
                           </div>
                         </div>
-                        <span className="font-serif font-medium text-amber-400">₹{(item.watch.price * item.quantity).toLocaleString('en-IN')}</span>
+                        <span className="font-didot font-medium text-amber-400">₹{(item.watch.price * item.quantity).toLocaleString('en-IN')}</span>
                       </div>
                     ))}
                   </div>
@@ -532,23 +532,23 @@ export default function CheckoutModal({
                 <div className="pt-3 border-t border-white/5 space-y-1.5 font-mono text-[10.5px] text-stone-400">
                   <div className="flex justify-between text-xs text-stone-500">
                     <span>Cart Subtotal</span>
-                    <span>₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="font-didot">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-emerald-400">
                       <span>Promo Applied ({appliedPromo?.code})</span>
-                      <span>- ₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <span className="font-didot">- ₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}
                   {giftWrapping && (
                     <div className="flex justify-between">
                       <span>🎁 {selectedBox?.name || 'Gift Wrapping'}</span>
-                      <span>₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <span className="font-didot">₹{giftWrappingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <span>DHL Courier Priority Fee</span>
-                    <span>{shippingCost === 0 ? 'COMPLIMENTARY' : `₹${shippingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</span>
+                    <span className="font-didot">{shippingCost === 0 ? 'COMPLIMENTARY' : `₹${shippingCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}</span>
                   </div>
                 </div>
               </div>
@@ -556,7 +556,7 @@ export default function CheckoutModal({
               <div className="pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-white/5 gap-4">
                 <div className="text-left font-sans flex-shrink-0">
                   <span className="text-[9px] font-mono text-stone-500 uppercase tracking-widest block">Total Collation Balance</span>
-                  <span className="font-serif font-black text-xl text-white">₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  <span className="font-didot font-black text-xl text-white">₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex space-x-3 w-full sm:w-auto">
                   <button

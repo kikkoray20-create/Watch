@@ -241,7 +241,7 @@ export default function WatchPage({
               <div>
                 <span className="text-[10px] font-mono text-stone-550 uppercase tracking-widest block">Authorized Boutique Price</span>
                 <div className="flex items-baseline space-x-2 mt-1">
-                  <span className="text-3xl font-serif font-semibold text-white">
+                  <span className="text-3xl font-didot font-semibold text-white">
                     ₹{watch.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                   <span className="text-xs font-mono text-stone-500">INR Taxes / GST Incl.</span>
@@ -496,7 +496,7 @@ export default function WatchPage({
                 <h4 className="font-serif text-sm font-medium text-white group-hover:text-amber-500 transition-colors line-clamp-1">
                   {rel.name}
                 </h4>
-                <p className="text-xs text-amber-500 font-mono mt-1 font-semibold">
+                <p className="text-xs text-amber-500 font-didot mt-1 font-semibold">
                   Price: ₹{rel.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
               </div>

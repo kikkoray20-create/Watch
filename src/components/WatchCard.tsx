@@ -84,7 +84,7 @@ export default function WatchCard({ watch, onSelect, onAddToCart }: WatchCardPro
         <div className="flex flex-col gap-3 mt-auto pt-3 border-t border-white/5">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono text-stone-500 tracking-wider uppercase">Price</span>
-            <span className="font-serif text-base font-medium text-white">
+            <span className="font-didot text-base font-medium text-white">
               ₹{watch.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
